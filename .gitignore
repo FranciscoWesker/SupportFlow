@@ -1,0 +1,75 @@
+# Python
+venv/
+env/
+ENV/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Modelos descargados
+models/
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Node
+node_modules/
+npm-debug.log
+
+# Backup files
+*_backup.py
+*.bak
+
+# Cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# Modelo local (muy pesado)
+.huggingface/
+transformers_cache/
+
+# Tmp
+*.tmp
+temp/
+
+# Scripts locales
+setup-github.sh
+start.sh
+start.bat
+
+# Configuraciones innecesarias
+vercel.json
+package.json
+
+# Versiones alternativas
+*_prod.py
+*_backup.py
+
