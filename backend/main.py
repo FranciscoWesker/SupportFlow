@@ -114,6 +114,16 @@ async def serve_styles_css():
         return FileResponse(css_path, media_type="text/css")
     raise HTTPException(status_code=404, detail="styles.css no encontrado")
 
+@app.get("/dist/output.css")
+async def serve_tailwind_css():
+    """Sirve el archivo CSS compilado de Tailwind"""
+    from fastapi.responses import FileResponse
+    import os
+    css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist", "output.css")
+    if os.path.exists(css_path):
+        return FileResponse(css_path, media_type="text/css")
+    raise HTTPException(status_code=404, detail="output.css no encontrado")
+
 @app.get("/health")
 async def health_check():
     return {
