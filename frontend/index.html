@@ -4,71 +4,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SupportFlow - Asistente de Soporte IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="./styles.css">
 </head>
-<body>
-    <div class="chat-wrapper">
-        <div class="chat-container">
-            <header class="chat-header">
-                <div class="header-left">
-                    <div class="avatar">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 h-screen w-screen overflow-hidden">
+    <div class="flex h-screen w-screen overflow-hidden">
+        <div class="flex flex-col h-full w-full bg-white">
+            <!-- Header Moderno -->
+            <header class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 shadow-lg flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                         </svg>
                     </div>
-                    <div class="header-info">
-                        <h1>SupportFlow</h1>
-                        <p id="status-text" class="status">Conectando...</p>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">SupportFlow</h1>
+                        <p id="status-text" class="text-sm text-white/80">Conectando...</p>
                     </div>
                 </div>
-                <button id="clear-btn" class="icon-btn" onclick="clearChat()" title="Limpiar chat">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <button id="clear-btn" onclick="clearChat()" class="p-2 rounded-lg hover:bg-white/20 transition-colors text-white" title="Limpiar chat">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
                 </button>
             </header>
 
-            <div id="chat-messages" class="chat-messages">
-                <div class="welcome-message">
-                    <div class="avatar ai-avatar">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+            <div id="chat-messages" class="flex-1 overflow-y-auto px-6 py-8 bg-gradient-to-b from-gray-50 to-white">
+                <!-- Mensaje de Bienvenida -->
+                <div class="flex items-start gap-3 mb-6 animate-fade-in">
+                    <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                         </svg>
                     </div>
-                    <div class="message-bubble ai-message">
-                        <div class="message-text">
-                            <p><strong>¡Hola! 👋</strong></p>
-                            <p>Soy el asistente de soporte técnico de SupportFlow, desarrollado por <strong>Francisco Castaño</strong>.</p>
-                            <p>Estoy aquí para ayudarte a resolver cualquier problema técnico. ¿En qué puedo asistirte hoy?</p>
+                    <div class="flex-1 bg-white rounded-2xl rounded-tl-sm px-6 py-4 shadow-sm border border-gray-100">
+                        <div class="prose prose-sm max-w-none">
+                            <p class="font-semibold text-gray-900">¡Hola! Soy SupportFlow 👋</p>
+                            <p class="text-gray-700">Soy tu asistente de soporte técnico inteligente. ¿En qué puedo asistirte hoy?</p>
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <p class="text-sm text-gray-600">Desarrollado por <strong class="text-indigo-600">Francisco Castaño</strong> • 
+                                    <a href="https://www.linkedin.com/in/francisco-salgado-casta%C3%B1o-77a952277/" target="_blank" class="text-[#0a66c2] hover:underline font-medium">LinkedIn</a>
+                                </p>
+                            </div>
                         </div>
-                        <div class="message-time">Ahora</div>
+                        <p class="text-xs text-gray-400 mt-2">Ahora</p>
                     </div>
                 </div>
             </div>
 
-            <div class="chat-input-wrapper">
-                <div class="chat-input-container">
-                    <button class="attach-btn" title="Adjuntar archivo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                        </svg>
-                    </button>
+            <!-- Input Area -->
+            <div class="border-t border-gray-200 bg-white px-6 py-4">
+                <div class="flex items-end gap-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
                     <textarea 
                         id="user-input" 
                         placeholder="Escribe tu mensaje..."
                         rows="1"
                         maxlength="1000"
+                        class="flex-1 resize-none bg-transparent outline-none text-gray-700 placeholder-gray-400 text-sm"
                     ></textarea>
-                    <button id="send-button" class="send-btn" onclick="sendMessage()" title="Enviar mensaje">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    <button id="send-button" onclick="sendMessage()" class="p-2 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl" title="Enviar mensaje">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                         </svg>
                     </button>
                 </div>
-                <div class="input-footer">
-                    <span class="char-count"><span id="char-count">0</span>/1000</span>
+                <div class="flex justify-end mt-2">
+                    <span class="text-xs text-gray-400"><span id="char-count">0</span>/1000</span>
                 </div>
             </div>
         </div>
