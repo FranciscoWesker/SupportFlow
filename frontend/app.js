@@ -58,7 +58,7 @@ function setupEventListeners() {
         }
     });
     
-    console.log('SupportFlow inicializado - Modo API Cerebras');
+   
 }
 
 // Enviar mensaje
