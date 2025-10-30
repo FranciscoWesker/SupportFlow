@@ -292,9 +292,8 @@ Este proyecto está bajo la Licencia MIT. Ver [LICENSE](LICENSE) para más infor
 
 **Francisco Castaño**
 
-- GitHub: [@franciscocastano](https://github.com/franciscocastano)
-- Email: tu-email@ejemplo.com
-
+- GitHub: [@franciscocastano](https://github.com/FranciscoWesker)
+- Email: franxxW@proton.me
 ---
 
 ## 🙏 Agradecimientos
