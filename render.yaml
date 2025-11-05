@@ -2,6 +2,7 @@ services:
   - type: web
     name: supportflow
     env: node
+    plan: free
     buildCommand: npm ci && npm run build
     startCommand: npm run preview
     envVars:
@@ -9,5 +10,6 @@ services:
         sync: false
       - key: VITE_HUGGINGFACE_API_KEY
         sync: false
-    healthCheckPath: /health
-
+      - key: PORT
+        value: 10000
+    healthCheckPath: /

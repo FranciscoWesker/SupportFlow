@@ -14,6 +14,10 @@ export default defineConfig({
     port: 3000,
     host: true,
   },
+  preview: {
+    port: Number(process.env.PORT) || 4173,
+    host: true,
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,
