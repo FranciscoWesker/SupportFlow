@@ -7,18 +7,24 @@ const sanitizeInput = (input: string): string => {
   return input.trim().replace(/[<>]/g, '');
 };
 
-const createGeminiPayload = (messages: Array<{ role: string; content: string }>) => {
+const createGeminiPayload = (
+  messages: Array<{ role: string; content: string }>
+) => {
   return {
-    contents: messages.map((msg) => ({
+    contents: messages.map(msg => ({
       parts: [{ text: msg.content }],
       role: msg.role === 'user' ? 'user' : 'model',
     })),
   };
 };
 
-const createHuggingFacePayload = (messages: Array<{ role: string; content: string }>) => {
+const createHuggingFacePayload = (
+  messages: Array<{ role: string; content: string }>
+) => {
   const conversation = messages
-    .map((msg) => `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content}`)
+    .map(
+      msg => `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.content}`
+    )
     .join('\n');
   return {
     inputs: conversation,
@@ -35,18 +41,24 @@ export const sendMessageToGemini = async (
 ): Promise<ApiResponse> => {
   try {
     const sanitizedMessage = sanitizeInput(message);
-    const messages = [...conversationHistory, { role: 'user', content: sanitizedMessage }];
+    const messages = [
+      ...conversationHistory,
+      { role: 'user', content: sanitizedMessage },
+    ];
     const payload = createGeminiPayload(messages);
 
-    const axiosInstance = createAxiosInstance('https://generativelanguage.googleapis.com');
-    
+    const axiosInstance = createAxiosInstance(
+      'https://generativelanguage.googleapis.com'
+    );
+
     const response = await axiosInstance.post(
       `/v1beta/models/gemini-pro:generateContent?key=${apiConfig.googleGeminiApiKey}`,
       payload
     );
 
     const botResponse =
-      response.data.candidates?.[0]?.content?.parts?.[0]?.text || 'Lo siento, no pude generar una respuesta.';
+      response.data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      'Lo siento, no pude generar una respuesta.';
 
     return {
       success: true,
@@ -70,11 +82,16 @@ export const sendMessageToHuggingFace = async (
 ): Promise<ApiResponse> => {
   try {
     const sanitizedMessage = sanitizeInput(message);
-    const messages = [...conversationHistory, { role: 'user', content: sanitizedMessage }];
+    const messages = [
+      ...conversationHistory,
+      { role: 'user', content: sanitizedMessage },
+    ];
     const payload = createHuggingFacePayload(messages);
 
-    const axiosInstance = createAxiosInstance('https://api-inference.huggingface.co');
-    
+    const axiosInstance = createAxiosInstance(
+      'https://api-inference.huggingface.co'
+    );
+
     const response = await axiosInstance.post(
       '/models/microsoft/DialoGPT-medium',
       payload,
@@ -85,7 +102,9 @@ export const sendMessageToHuggingFace = async (
       }
     );
 
-    const botResponse = response.data.generated_text || 'Lo siento, no pude generar una respuesta.';
+    const botResponse =
+      response.data.generated_text ||
+      'Lo siento, no pude generar una respuesta.';
 
     return {
       success: true,
@@ -116,13 +135,13 @@ export const sendMessage = async (
   }
 
   // Modo demo si no hay API keys configuradas
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     setTimeout(() => {
       resolve({
         success: true,
-        message: 'Este es un mensaje de demostración. Por favor, configura las API keys en tu archivo .env para usar el chatbot real.',
+        message:
+          'Este es un mensaje de demostración. Por favor, configura las API keys en tu archivo .env para usar el chatbot real.',
       });
     }, 1000);
   });
 };
-

@@ -21,11 +21,22 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
         </div>
         <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
           <div className="flex space-x-2">
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div
+              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+              style={{ animationDelay: '0ms' }}
+            />
+            <div
+              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+              style={{ animationDelay: '150ms' }}
+            />
+            <div
+              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+              style={{ animationDelay: '300ms' }}
+            />
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">SupportFlow está escribiendo...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            SupportFlow está escribiendo...
+          </p>
         </div>
       </motion.div>
     );
@@ -58,12 +69,12 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
             : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
         }`}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+        <p className="text-sm whitespace-pre-wrap break-words">
+          {message.content}
+        </p>
         <p
           className={`text-xs mt-2 ${
-            isUser
-              ? 'text-primary-100'
-              : 'text-gray-500 dark:text-gray-400'
+            isUser ? 'text-primary-100' : 'text-gray-500 dark:text-gray-400'
           }`}
         >
           {message.timestamp.toLocaleTimeString('es-ES', {
@@ -75,4 +86,3 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
     </motion.div>
   );
 };
-

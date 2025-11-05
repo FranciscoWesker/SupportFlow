@@ -14,4 +14,3 @@ export const getApiProvider = (): 'gemini' | 'huggingface' | null => {
   if (apiConfig.huggingfaceApiKey) return 'huggingface';
   return null;
 };
-

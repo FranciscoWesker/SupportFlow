@@ -38,7 +38,7 @@ export const Chat = () => {
               </motion.button>
             </motion.div>
           )}
-          {messages.map((message) => (
+          {messages.map(message => (
             <MessageBubble key={message.id} message={message} />
           ))}
           <div ref={messagesEndRef} />
@@ -48,4 +48,3 @@ export const Chat = () => {
     </div>
   );
 };
-

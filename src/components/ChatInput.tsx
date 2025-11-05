@@ -36,7 +36,7 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
         <div className="flex items-end space-x-2">
           <textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={e => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Escribe tu mensaje aquí... (Enter para enviar)"
             disabled={isLoading}
@@ -59,4 +59,3 @@ export const ChatInput = ({ onSendMessage, isLoading }: ChatInputProps) => {
     </motion.form>
   );
 };
-

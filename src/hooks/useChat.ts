@@ -6,7 +6,8 @@ export const useChat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: '¡Hola! Soy SupportFlow, tu asistente de soporte técnico. ¿En qué puedo ayudarte hoy?',
+      content:
+        '¡Hola! Soy SupportFlow, tu asistente de soporte técnico. ¿En qué puedo ayudarte hoy?',
       sender: 'bot',
       timestamp: new Date(),
     },
@@ -20,7 +21,7 @@ export const useChat = () => {
       sender,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages(prev => [...prev, newMessage]);
   }, []);
 
   const sendMessage = useCallback(
@@ -31,7 +32,8 @@ export const useChat = () => {
       addMessage(content, 'user');
 
       // Agregar mensaje de carga del bot
-      const loadingMessageId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      const loadingMessageId =
+        Date.now().toString() + Math.random().toString(36).substr(2, 9);
       const loadingMessage: Message = {
         id: loadingMessageId,
         content: '',
@@ -39,14 +41,14 @@ export const useChat = () => {
         timestamp: new Date(),
         isLoading: true,
       };
-      setMessages((prev) => [...prev, loadingMessage]);
+      setMessages(prev => [...prev, loadingMessage]);
       setIsLoading(true);
 
       try {
         // Preparar historial de conversación
         const conversationHistory = messages
-          .filter((msg) => !msg.isLoading)
-          .map((msg) => ({
+          .filter(msg => !msg.isLoading)
+          .map(msg => ({
             role: msg.sender === 'user' ? 'user' : 'assistant',
             content: msg.content,
           }));
@@ -55,12 +57,13 @@ export const useChat = () => {
         const response = await sendMessageToApi(content, conversationHistory);
 
         // Remover mensaje de carga y agregar respuesta
-        setMessages((prev) => {
-          const filtered = prev.filter((msg) => msg.id !== loadingMessageId);
+        setMessages(prev => {
+          const filtered = prev.filter(msg => msg.id !== loadingMessageId);
           return [
             ...filtered,
             {
-              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              id:
+                Date.now().toString() + Math.random().toString(36).substr(2, 9),
               content: response.message,
               sender: 'bot',
               timestamp: new Date(),
@@ -69,13 +72,15 @@ export const useChat = () => {
         });
       } catch (error) {
         // Remover mensaje de carga y agregar mensaje de error
-        setMessages((prev) => {
-          const filtered = prev.filter((msg) => msg.id !== loadingMessageId);
+        setMessages(prev => {
+          const filtered = prev.filter(msg => msg.id !== loadingMessageId);
           return [
             ...filtered,
             {
-              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-              content: 'Lo siento, ocurrió un error al procesar tu mensaje. Por favor, intenta de nuevo.',
+              id:
+                Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              content:
+                'Lo siento, ocurrió un error al procesar tu mensaje. Por favor, intenta de nuevo.',
               sender: 'bot',
               timestamp: new Date(),
             },
@@ -92,7 +97,8 @@ export const useChat = () => {
     setMessages([
       {
         id: '1',
-        content: '¡Hola! Soy SupportFlow, tu asistente de soporte técnico. ¿En qué puedo ayudarte hoy?',
+        content:
+          '¡Hola! Soy SupportFlow, tu asistente de soporte técnico. ¿En qué puedo ayudarte hoy?',
         sender: 'bot',
         timestamp: new Date(),
       },
@@ -106,4 +112,3 @@ export const useChat = () => {
     clearMessages,
   };
 };
-
