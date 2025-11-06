@@ -23,7 +23,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Crear template de configuración de nginx para SPA con soporte para PORT
 RUN mkdir -p /etc/nginx/templates && \
-RUN echo 'server { \
+echo 'server { \
     listen ${PORT} default_server; \
     listen [::]:${PORT} default_server; \
     server_name _; \
