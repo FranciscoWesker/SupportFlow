@@ -23,7 +23,11 @@ export const sendMessage = async (
     const axiosInstance = createAxiosInstance(baseURL);
 
     // Use logger util: debug/info are disabled in production
-    logger.debug('Enviando mensaje a:', baseURL || window.location.origin, '/api/chat');
+    logger.debug(
+      'Enviando mensaje a:',
+      baseURL || window.location.origin,
+      '/api/chat'
+    );
 
     const r = await axiosInstance.post('/api/chat', {
       message: message.trim(),
