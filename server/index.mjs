@@ -25,6 +25,11 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Endpoint de prueba para verificar que el servidor está funcionando
+app.get('/api/test', (_req, res) => {
+  res.json({ success: true, message: 'Servidor funcionando correctamente' });
+});
+
 // Rate limiting
 // Deshabilitar validación de trust proxy ya que estamos detrás de Render (proxy confiable)
 const limiter = rateLimit({
@@ -38,6 +43,19 @@ app.use('/api/', limiter);
 
 // Sanitización mínima
 const sanitize = s => String(s || '').trim().replace(/[<>]/g, '');
+
+// Middleware de logging solo para rutas de API (más eficiente)
+app.use('/api/', (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
+    body: req.body,
+    query: req.query,
+    ip: req.ip,
+    headers: {
+      'content-type': req.get('content-type'),
+    },
+  });
+  next();
+});
 
 // Endpoint de chat - DEBE estar antes del middleware de archivos estáticos
 app.post('/api/chat', async (req, res) => {
@@ -129,11 +147,28 @@ app.get('*', (req, res) => {
 
 const port = Number(process.env.PORT) || 10000;
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Server listening on ${port}`);
+  console.log('='.repeat(50));
+  console.log(`✅ Server listening on ${port}`);
   console.log(`Health check: http://localhost:${port}/health`);
   console.log(`API endpoint: http://localhost:${port}/api/chat`);
   console.log(`GOOGLE_GEMINI_API_KEY: ${process.env.GOOGLE_GEMINI_API_KEY ? '✅ Configurada' : '❌ No configurada'}`);
   console.log(`HUGGINGFACE_API_KEY: ${process.env.HUGGINGFACE_API_KEY ? '✅ Configurada' : '❌ No configurada'}`);
+  console.log('Rutas registradas:');
+  console.log('  - GET  /health');
+  console.log('  - GET  /api/test');
+  console.log('  - POST /api/chat');
+  console.log('  - GET  /* (SPA catch-all)');
+  console.log('='.repeat(50));
+  
+  // Verificar que las rutas están registradas
+  const routes = [];
+  app._router?.stack?.forEach(middleware => {
+    if (middleware.route) {
+      const methods = Object.keys(middleware.route.methods);
+      routes.push(`${methods.join(',').toUpperCase()} ${middleware.route.path}`);
+    }
+  });
+  console.log('Rutas detectadas:', routes);
 });
 
 

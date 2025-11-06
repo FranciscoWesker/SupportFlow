@@ -16,9 +16,16 @@ export const sendMessage = async (
       };
     }
 
-    // Usar la URL completa o relativa según el entorno
-    const baseURL = import.meta.env.PROD ? '' : 'http://localhost:10000';
+    // Usar URL relativa en producción (mismo dominio) o localhost en desarrollo
+    const baseURL =
+      import.meta.env.MODE === 'production' ? '' : 'http://localhost:10000';
     const axiosInstance = createAxiosInstance(baseURL);
+
+    console.log(
+      'Enviando mensaje a:',
+      baseURL || window.location.origin,
+      '/api/chat'
+    );
 
     const r = await axiosInstance.post('/api/chat', {
       message: message.trim(),
@@ -35,7 +42,10 @@ export const sendMessage = async (
       error: r.data?.error || 'Error desconocido',
     };
   } catch (error) {
-    const axiosError = error as AxiosError<{ error?: string; success?: boolean }>;
+    const axiosError = error as AxiosError<{
+      error?: string;
+      success?: boolean;
+    }>;
     const errorMessage =
       axiosError.response?.data?.error ||
       axiosError.message ||

@@ -7,13 +7,14 @@ services:
       dockerfile: Dockerfile
     container_name: supportflow
     ports:
-      - '3000:80'
+      - '10000:10000'
     environment:
       - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
       - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+      - PORT=10000
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:10000/health"]
       interval: 30s
       timeout: 3s
       retries: 3
