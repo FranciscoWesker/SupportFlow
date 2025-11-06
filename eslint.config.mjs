@@ -11,6 +11,26 @@ export default [
     ignores: ['dist', 'node_modules', '*.config.js', '*.config.mjs', '*.config.ts'],
   },
   js.configs.recommended,
+  // Archivos JS puros del cliente (p.ej., public/env.template.js)
+  {
+    files: ['public/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+    },
+    rules: {},
+  },
+  // Código de servidor Node
+  {
+    files: ['server/**/*.mjs', 'server/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {},
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
