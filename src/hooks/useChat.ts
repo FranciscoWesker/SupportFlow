@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { Message } from '@/types';
 import { sendMessage as sendMessageToApi } from '@/services/api.service';
 
@@ -13,6 +13,8 @@ export const useChat = () => {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  // Ref para evitar envíos concurrentes (race conditions entre eventos y setState)
+  const sendingRef = useRef(false);
 
   const addMessage = useCallback((content: string, sender: 'user' | 'bot') => {
     const newMessage: Message = {
@@ -26,7 +28,10 @@ export const useChat = () => {
 
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!content.trim() || isLoading) return;
+      if (!content.trim() || isLoading || sendingRef.current) return;
+
+      // Marcar envío en curso para evitar llamadas duplicadas
+      sendingRef.current = true;
 
       // Agregar mensaje del usuario
       addMessage(content, 'user');
@@ -88,6 +93,7 @@ export const useChat = () => {
         });
       } finally {
         setIsLoading(false);
+        sendingRef.current = false;
       }
     },
     [messages, addMessage, isLoading]
