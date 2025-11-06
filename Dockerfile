@@ -24,6 +24,13 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Copiar package.json para instalar solo dependencias de producción
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/package-lock.json* ./
+
+# Instalar solo dependencias de producción
+RUN npm ci --only=production || npm install --only=production
+
 # Copiar artefactos construidos y servidor
 COPY --from=builder /app/dist ./dist
 COPY server ./server
