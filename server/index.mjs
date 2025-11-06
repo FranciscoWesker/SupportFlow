@@ -11,8 +11,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Configurar trust proxy para funcionar detrás de proxies (Render, nginx, etc.)
-app.set('trust proxy', true);
+// Configurar trust proxy: solo confiar en el primer proxy (Render)
+// Esto es más seguro que 'true' y evita que cualquiera falsifique X-Forwarded-For
+app.set('trust proxy', 1);
 
 // Seguridad básica
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -25,7 +26,14 @@ app.get('/health', (_req, res) => {
 });
 
 // Rate limiting
-const limiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
+// Deshabilitar validación de trust proxy ya que estamos detrás de Render (proxy confiable)
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  validate: {
+    trustProxy: false, // Deshabilitar validación ya que confiamos en el proxy de Render
+  },
+});
 app.use('/api/', limiter);
 
 // Sanitización mínima
