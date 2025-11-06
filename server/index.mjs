@@ -13,8 +13,11 @@ const app = express();
 const port = Number(process.env.PORT) || 10000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Configurar cliente de Google GenAI
-const ai = new GoogleGenAI({});
+// Leer clave de Gemini (prefiere GOOGLE_GEMINI_API_KEY pero acepta GEMINI_API_KEY por compatibilidad)
+const geminiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+
+// Configurar cliente de Google GenAI con la clave (si está presente)
+const ai = new GoogleGenAI({ apiKey: geminiKey });
 
 // ============================================
 // CONFIGURACIÓN BÁSICA
@@ -110,7 +113,7 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    const { message, history = [], provider } = req.body;
+  const { message, provider } = req.body;
 
     // Validar mensaje
     if (!message || typeof message !== 'string') {
@@ -132,8 +135,53 @@ app.post('/api/chat', async (req, res) => {
 
     console.log('[CHAT] Mensaje válido:', cleanMessage.substring(0, 50) + '...');
 
-    // Obtener API key de Gemini
-    const geminiKey = process.env.GEMINI_API_KEY;
+    // Selección de proveedor
+    const hfKey = process.env.HUGGINGFACE_API_KEY;
+    const hfModel = process.env.HUGGINGFACE_MODEL || 'gpt2';
+
+    const preferHf = Boolean(hfKey) && (provider === 'huggingface' || !geminiKey);
+
+    if (preferHf) {
+      console.log('[CHAT] Usando HuggingFace inference API, modelo:', hfModel);
+
+      try {
+        const hfResp = await fetch(`https://api-inference.huggingface.co/models/${hfModel}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${hfKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ inputs: cleanMessage })
+        });
+
+        const hfData = await hfResp.json();
+
+        // Manejo flexible de respuesta: algunos modelos devuelven [{generated_text}] u objetcs
+        let text = '';
+        if (Array.isArray(hfData) && hfData[0]?.generated_text) {
+          text = hfData[0].generated_text;
+        } else if (hfData.generated_text) {
+          text = hfData.generated_text;
+        } else if (typeof hfData === 'string') {
+          text = hfData;
+        } else if (hfData.error) {
+          throw new Error(hfData.error || 'Error de HuggingFace');
+        } else {
+          // Último recurso: stringify
+          text = JSON.stringify(hfData);
+        }
+
+        const duration = Date.now() - startTime;
+        console.log(`[CHAT] Respuesta HF procesada en ${duration}ms`);
+        return res.json({ success: true, message: text });
+      } catch (hfErr) {
+        console.error('[CHAT] Error HuggingFace:', hfErr?.message || hfErr);
+        return res.status(502).json({ success: false, error: 'Error en HuggingFace' });
+      }
+    }
+
+    // Si llegamos aquí, usamos Gemini
+    const geminiModel = 'models/gemini-2.5-flash';
 
     if (!geminiKey) {
       console.error('[CHAT] Clave de API de Gemini no configurada');
@@ -143,22 +191,11 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    // Configurar el modelo de Gemini
-    const geminiModel = 'models/gemini-2.5-flash';
-
-    // Preparar el payload para la API de Gemini
-    const payload = {
-      model: geminiModel,
-      prompt: cleanMessage,
-      temperature: 0.7,
-      max_output_tokens: 100,
-    };
-
     console.log('[CHAT] Enviando request a Gemini (modelo):', geminiModel);
 
     // Enviar la solicitud a la API de Gemini
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: geminiModel,
       contents: cleanMessage,
     });
 
@@ -242,7 +279,8 @@ app.use((req, res) => {
 // ============================================
 // MANEJO DE ERRORES GLOBAL
 // ============================================
-app.use((err, req, res, next) => {
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
   console.error('[ERROR]', err);
   res.status(500).json({ 
     success: false, 
@@ -261,7 +299,7 @@ const server = app.listen(port, '0.0.0.0', () => {
   console.log(`🌐 Health: http://localhost:${port}/health`);
   console.log(`🧪 Test: http://localhost:${port}/api/test`);
   console.log(`💬 Chat: http://localhost:${port}/api/chat`);
-  console.log(`🔑 Gemini: ${process.env.GOOGLE_GEMINI_API_KEY ? '✅' : '❌'}`);
+  console.log(`🔑 Gemini: ${geminiKey ? '✅' : '❌'}`);
   console.log(`🔑 HuggingFace: ${process.env.HUGGINGFACE_API_KEY ? '✅' : '❌'}`);
   console.log('='.repeat(60));
 });
@@ -279,6 +317,7 @@ const shutdown = () => {
     console.error('⚠️ Forzando cierre del servidor');
     process.exit(1);
   }, 10000);
+
 };
 
 process.on('SIGTERM', shutdown);

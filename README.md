@@ -61,6 +61,7 @@ Configura variables del lado servidor (no expuestas al cliente):
 ```env
 GOOGLE_GEMINI_API_KEY=tu_api_key_de_gemini
 HUGGINGFACE_API_KEY=tu_api_key_de_huggingface
+HUGGINGFACE_MODEL=gpt2 # opcional: modelo HF a usar (ej: 'gpt2', 'bigscience/bloom')
 ```
 
 **Nota**: Si no configuras las API keys, el chatbot funcionará en modo demo con respuestas simuladas.
