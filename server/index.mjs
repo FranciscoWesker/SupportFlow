@@ -39,22 +39,35 @@ app.use('/api/', limiter);
 // Sanitización mínima
 const sanitize = s => String(s || '').trim().replace(/[<>]/g, '');
 
-// Middleware de logging para debug
-app.use('/api/', (req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
-    body: req.body,
-    ip: req.ip,
-  });
-  next();
-});
-
-// Endpoint de chat
+// Endpoint de chat - DEBE estar antes del middleware de archivos estáticos
 app.post('/api/chat', async (req, res) => {
   try {
-    console.log('POST /api/chat recibido', { body: req.body });
-    const { message, history = [], provider } = req.body || {};
+    console.log('POST /api/chat recibido', {
+      body: req.body,
+      contentType: req.get('content-type'),
+      method: req.method,
+      path: req.path,
+    });
+
+    // Validar que el body existe
+    if (!req.body) {
+      console.error('Request body vacío');
+      return res.status(400).json({ success: false, error: 'Body de la petición vacío' });
+    }
+
+    const { message, history = [], provider } = req.body;
+
+    // Validar que el mensaje existe y no está vacío
+    if (!message || typeof message !== 'string') {
+      console.error('Mensaje inválido:', message);
+      return res.status(400).json({ success: false, error: 'Mensaje inválido o vacío' });
+    }
+
     const cleanMessage = sanitize(message);
-    if (!cleanMessage) return res.status(400).json({ success: false, error: 'Mensaje vacío' });
+    if (!cleanMessage || cleanMessage.length === 0) {
+      console.error('Mensaje vacío después de sanitizar');
+      return res.status(400).json({ success: false, error: 'Mensaje vacío' });
+    }
 
     const googleKey = process.env.GOOGLE_GEMINI_API_KEY;
     const hfKey = process.env.HUGGINGFACE_API_KEY;
@@ -105,21 +118,13 @@ const distDir = path.resolve(__dirname, '../dist');
 // Servir archivos estáticos
 app.use(express.static(distDir));
 
-// Catch-all para SPA: solo para GET requests que no sean /api/*
-app.get('*', (req, res, next) => {
-  // Si es una ruta de API, devolver 404
-  if (req.path.startsWith('/api/')) {
+// Catch-all para SPA: solo para GET requests que no sean /api/* o /health
+app.get('*', (req, res) => {
+  // Si es una ruta de API o health, devolver 404
+  if (req.path.startsWith('/api/') || req.path === '/health') {
     return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
   }
   res.sendFile(path.join(distDir, 'index.html'));
-});
-
-// Manejar rutas POST no encontradas
-app.post('*', (req, res) => {
-  if (!req.path.startsWith('/api/')) {
-    return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
-  }
-  res.status(404).json({ success: false, error: 'Endpoint API no encontrado' });
 });
 
 const port = Number(process.env.PORT) || 10000;

@@ -2,31 +2,49 @@ import { AxiosError } from 'axios';
 import type { ApiResponse } from '@/types';
 import { createAxiosInstance } from './axios.config';
 
-const sanitizeInput = (input: string): string => {
-  return input.trim().replace(/[<>]/g, '');
-};
-
 export const sendMessage = async (
   message: string,
   conversationHistory: Array<{ role: string; content: string }>
 ): Promise<ApiResponse> => {
   try {
-    const sanitized = sanitizeInput(message);
-    const axiosInstance = createAxiosInstance('');
+    // No sanitizar aquí, el servidor lo hará
+    if (!message || !message.trim()) {
+      return {
+        success: false,
+        message: 'El mensaje no puede estar vacío',
+        error: 'Mensaje vacío',
+      };
+    }
+
+    // Usar la URL completa o relativa según el entorno
+    const baseURL = import.meta.env.PROD ? '' : 'http://localhost:10000';
+    const axiosInstance = createAxiosInstance(baseURL);
+
     const r = await axiosInstance.post('/api/chat', {
-      message: sanitized,
+      message: message.trim(),
       history: conversationHistory,
     });
-    return { success: true, message: r.data?.message || '' };
+
+    if (r.data?.success && r.data?.message) {
+      return { success: true, message: r.data.message };
+    }
+
+    return {
+      success: false,
+      message: r.data?.error || 'Error desconocido',
+      error: r.data?.error || 'Error desconocido',
+    };
   } catch (error) {
-    const axiosError = error as AxiosError<{ error?: string }>;
+    const axiosError = error as AxiosError<{ error?: string; success?: boolean }>;
+    const errorMessage =
+      axiosError.response?.data?.error ||
+      axiosError.message ||
+      'Error desconocido';
+
     return {
       success: false,
       message: 'Error del servidor',
-      error:
-        axiosError.response?.data?.error ||
-        axiosError.message ||
-        'Error desconocido',
+      error: errorMessage,
     };
   }
 };
