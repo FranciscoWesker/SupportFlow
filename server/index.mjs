@@ -16,6 +16,11 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: true, credentials: false }));
 app.use(express.json({ limit: '1mb' }));
 
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Rate limiting
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
 app.use('/api/', limiter);
@@ -73,16 +78,28 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Servir estáticos (producción)
+// Servir estáticos (producción) - DEBE ir después de las rutas de API
 const distDir = path.resolve(__dirname, '../dist');
+
+// Servir archivos estáticos
 app.use(express.static(distDir));
-app.get('*', (_req, res) => {
+
+// Catch-all para SPA: solo para GET requests que no sean /api/*
+app.get('*', (req, res, next) => {
+  // Si es una ruta de API, no servir index.html
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
   res.sendFile(path.join(distDir, 'index.html'));
 });
 
 const port = Number(process.env.PORT) || 10000;
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on ${port}`);
+  console.log(`Health check: http://localhost:${port}/health`);
+  console.log(`API endpoint: http://localhost:${port}/api/chat`);
+  console.log(`GOOGLE_GEMINI_API_KEY: ${process.env.GOOGLE_GEMINI_API_KEY ? '✅ Configurada' : '❌ No configurada'}`);
+  console.log(`HUGGINGFACE_API_KEY: ${process.env.HUGGINGFACE_API_KEY ? '✅ Configurada' : '❌ No configurada'}`);
 });
 
 
