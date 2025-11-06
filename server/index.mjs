@@ -129,21 +129,28 @@ app.post('/api/chat', async (req, res) => {
 
     console.log('[CHAT] Mensaje válido:', cleanMessage.substring(0, 50) + '...');
 
-    // Obtener API keys
+    // Obtener API keys (no imprimir los valores)
     const googleKey = process.env.GOOGLE_GEMINI_API_KEY;
     const hfKey = process.env.HUGGINGFACE_API_KEY;
 
+    // Si no hay ninguna key configurada, responder 503 (Service Unavailable)
     if (!googleKey && !hfKey) {
-      console.error('[CHAT] No hay API keys configuradas');
-      return res.status(500).json({ 
+      console.warn('[CHAT] No hay API keys configuradas:', {
+        hasGemini: !!googleKey,
+        hasHuggingFace: !!hfKey
+      });
+      return res.status(503).json({ 
         success: false, 
-        error: 'Servidor no configurado correctamente' 
+        error: 'Proveedor no disponible. Ningún proveedor configurado en el servidor'
       });
     }
 
-    // Seleccionar proveedor
+    // Seleccionar proveedor: explícito del body o por disponibilidad de keys
     const selected = provider || (googleKey ? 'gemini' : hfKey ? 'huggingface' : null);
     console.log('[CHAT] Proveedor seleccionado:', selected);
+
+    // Modelo Gemini configurable vía env (permite corregir el nombre sin tocar código)
+    const geminiModel = process.env.GOOGLE_GEMINI_MODEL || 'gemini-1.5-flash';
 
     // Procesar con Gemini
     if (selected === 'gemini' && googleKey) {
@@ -182,10 +189,10 @@ app.post('/api/chat', async (req, res) => {
           ],
         };
 
-        // Usar el modelo gemini-1.5-flash (más rápido y confiable)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${googleKey}`;
+        // Usa modelo configurable via env (encodeURIComponent por seguridad)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${googleKey}`;
         
-        console.log('[CHAT] Enviando request a Gemini...');
+        console.log('[CHAT] Enviando request a Gemini (modelo):', geminiModel);
         
         const response = await axios.post(url, payload, {
           headers: { 'Content-Type': 'application/json' },
@@ -212,11 +219,17 @@ app.post('/api/chat', async (req, res) => {
           data: geminiError.response?.data,
         });
         
+        // Si es 404, añadir instrucción útil a logs/response
+        if (geminiError.response?.status === 404) {
+          console.warn('[CHAT] Gemini 404 — el modelo o el método no están disponibles para la versión v1beta. Ejecuta ListModels para ver modelos/métodos soportados.');
+        }
+        
         // Si falla Gemini, intentar con HuggingFace si está disponible
         if (hfKey) {
           console.log('[CHAT] Fallback a HuggingFace...');
-          // Continuar con HuggingFace (el código está abajo)
+          // continúa con el flujo normal hacia HuggingFace más abajo
         } else {
+          // Propagar error para que el bloque catch exterior lo maneje
           throw geminiError;
         }
       }
@@ -252,17 +265,24 @@ app.post('/api/chat', async (req, res) => {
       return res.json({ success: true, message: text });
     }
 
-    return res.status(500).json({ 
+    // Si llegamos aquí, no hay proveedor válido seleccionado
+    console.warn('[CHAT] Llegó al final del handler sin proveedor válido:', { selected, hasGemini: !!googleKey, hasHf: !!hfKey });
+    return res.status(503).json({ 
       success: false, 
-      error: 'Proveedor no disponible' 
+      error: 'Proveedor no disponible. Ningún proveedor válido seleccionado o disponible' 
     });
     
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[CHAT] Error después de ${duration}ms:`, error.message);
-    
+    console.error(`[CHAT] Error después de ${duration}ms:`, {
+      message: error?.message,
+      status: error?.response?.status,
+      data: error?.response?.data
+    });
+
     const status = error?.response?.status || 500;
-    const message = error?.message || 'Error interno del servidor';
+    // Si la respuesta del provider trae un mensaje útil, retornarlo (sin filtrar secrets)
+    const message = error?.response?.data?.error?.message || error?.message || 'Error interno del servidor';
     
     return res.status(status).json({ 
       success: false, 
