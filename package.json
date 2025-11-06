@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview --host 0.0.0.0",
+    "preview": "node server/index.mjs",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
@@ -17,7 +17,11 @@
     "@chatscope/chat-ui-kit-react": "^1.0.1",
     "@chatscope/chat-ui-kit-styles": "^1.0.1",
     "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
     "framer-motion": "^11.0.5",
+    "helmet": "^7.1.0",
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

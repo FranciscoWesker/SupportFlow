@@ -4,10 +4,10 @@ services:
     env: node
     plan: free
     buildCommand: npm ci && npm run build
-    startCommand: vite preview --host 0.0.0.0 --port $PORT
+    startCommand: node server/index.mjs
     envVars:
-      - key: VITE_GOOGLE_GEMINI_API_KEY
+      - key: GOOGLE_GEMINI_API_KEY
         sync: false
-      - key: VITE_HUGGINGFACE_API_KEY
+      - key: HUGGINGFACE_API_KEY
         sync: false
     healthCheckPath: /

@@ -1,5 +1,4 @@
 import { AxiosError } from 'axios';
-import { apiConfig } from '@/config/api.config';
 import type { ApiResponse } from '@/types';
 import { createAxiosInstance } from './axios.config';
 
@@ -126,22 +125,20 @@ export const sendMessage = async (
   message: string,
   conversationHistory: Array<{ role: string; content: string }>
 ): Promise<ApiResponse> => {
-  if (apiConfig.googleGeminiApiKey) {
-    return sendMessageToGemini(message, conversationHistory);
+  try {
+    const sanitized = sanitizeInput(message);
+    const axiosInstance = createAxiosInstance('');
+    const r = await axiosInstance.post('/api/chat', {
+      message: sanitized,
+      history: conversationHistory,
+    });
+    return { success: true, message: r.data?.message || '' };
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    return {
+      success: false,
+      message: 'Error del servidor',
+      error: axiosError.response?.data?.error || axiosError.message || 'Error desconocido',
+    };
   }
-
-  if (apiConfig.huggingfaceApiKey) {
-    return sendMessageToHuggingFace(message, conversationHistory);
-  }
-
-  // Modo demo si no hay API keys configuradas
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        message:
-          'Este es un mensaje de demostración. Por favor, configura las API keys en tu archivo .env para usar el chatbot real.',
-      });
-    }, 1000);
-  });
 };
