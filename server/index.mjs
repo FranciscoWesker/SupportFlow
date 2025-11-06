@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
+import { GoogleGenAI } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +12,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT) || 10000;
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Configurar cliente de Google GenAI
+const ai = new GoogleGenAI({});
 
 // ============================================
 // CONFIGURACIÓN BÁSICA
@@ -154,26 +157,19 @@ app.post('/api/chat', async (req, res) => {
     console.log('[CHAT] Enviando request a Gemini (modelo):', geminiModel);
 
     // Enviar la solicitud a la API de Gemini
-    const response = await axios.post(
-      'https://generativelanguage.googleapis.com/v1beta/generateContent',
-      payload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${geminiKey}`,
-        },
-        timeout: 25000,
-      }
-    );
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: cleanMessage,
+    });
 
     console.log('[CHAT] Respuesta de Gemini recibida:', response.status);
 
-    if (!response.data?.candidates?.[0]?.output) {
+    if (!response.text) {
       console.error('[CHAT] Respuesta de Gemini sin texto:', JSON.stringify(response.data, null, 2));
       throw new Error('Respuesta vacía de Gemini');
     }
 
-    const text = response.data.candidates[0].output;
+    const text = response.text;
     const duration = Date.now() - startTime;
 
     console.log(`[CHAT] Respuesta procesada en ${duration}ms`);
