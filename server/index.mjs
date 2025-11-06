@@ -27,10 +27,23 @@ app.set('trust proxy', 1);
 // ============================================
 // MIDDLEWARES GLOBALES
 // ============================================
-app.use(helmet({ 
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false 
-}));
+// Helmet: en producción activamos una CSP restrictiva; en desarrollo permitimos menos restricciones
+const helmetOptions = isProduction
+  ? {
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+    }
+  : { contentSecurityPolicy: false, crossOriginEmbedderPolicy: false };
+
+app.use(helmet(helmetOptions));
 
 app.use(cors({ 
   origin: true, 
@@ -44,9 +57,10 @@ app.use(express.json({ limit: '1mb' }));
 // ============================================
 // RATE LIMITING
 // ============================================
-const limiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 30,
+// Limiter general para todas las rutas /api (protección básica)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 100, // peticiones por IP por ventana
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -57,9 +71,28 @@ const limiter = rateLimit({
   }
 });
 
+// Limiter más estricto solo para /api/chat
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Demasiadas peticiones al chat, intenta de nuevo más tarde'
+    });
+  }
+});
+
 // ============================================
 // LOGGING MIDDLEWARE (solo para API)
 // ============================================
+// Aplicar limitadores antes de las rutas
+app.use('/api', apiLimiter);
+// Limitar específicamente el chat
+app.use('/api/chat', chatLimiter);
+
 app.use('/api', (req, res, next) => {
   console.log(`[API] ${req.method} ${req.path}`, {
     body: req.body ? 'presente' : 'ausente',
@@ -91,8 +124,7 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Aplicar rate limiting solo a /api/chat
-app.use('/api/chat', limiter);
+// Nota: rate limiting aplicado globalmente y para /api/chat más arriba
 
 // Función de sanitización
 const sanitize = (s) => String(s || '').trim().replace(/[<>]/g, '');
@@ -133,7 +165,8 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    console.log('[CHAT] Mensaje válido:', cleanMessage.substring(0, 50) + '...');
+  // No registrar texto de usuario en logs; registrar solo metadatos
+  console.log(`[CHAT] Mensaje válido (len=${cleanMessage.length})`);
 
     // Selección de proveedor
     const hfKey = process.env.HUGGINGFACE_API_KEY;
