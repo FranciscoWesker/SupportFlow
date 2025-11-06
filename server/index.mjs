@@ -39,9 +39,19 @@ app.use('/api/', limiter);
 // Sanitización mínima
 const sanitize = s => String(s || '').trim().replace(/[<>]/g, '');
 
+// Middleware de logging para debug
+app.use('/api/', (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
+    body: req.body,
+    ip: req.ip,
+  });
+  next();
+});
+
 // Endpoint de chat
 app.post('/api/chat', async (req, res) => {
   try {
+    console.log('POST /api/chat recibido', { body: req.body });
     const { message, history = [], provider } = req.body || {};
     const cleanMessage = sanitize(message);
     if (!cleanMessage) return res.status(400).json({ success: false, error: 'Mensaje vacío' });
@@ -97,11 +107,19 @@ app.use(express.static(distDir));
 
 // Catch-all para SPA: solo para GET requests que no sean /api/*
 app.get('*', (req, res, next) => {
-  // Si es una ruta de API, no servir index.html
+  // Si es una ruta de API, devolver 404
   if (req.path.startsWith('/api/')) {
-    return next();
+    return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
   }
   res.sendFile(path.join(distDir, 'index.html'));
+});
+
+// Manejar rutas POST no encontradas
+app.post('*', (req, res) => {
+  if (!req.path.startsWith('/api/')) {
+    return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
+  }
+  res.status(404).json({ success: false, error: 'Endpoint API no encontrado' });
 });
 
 const port = Number(process.env.PORT) || 10000;
