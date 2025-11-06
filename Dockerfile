@@ -21,10 +21,11 @@ FROM nginx:alpine
 # Copiar archivos construidos
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copiar configuración de nginx para SPA
+# Crear template de configuración de nginx para SPA con soporte para PORT
 RUN echo 'server { \
-    listen 80; \
-    server_name localhost; \
+    listen ${PORT} default_server; \
+    listen [::]:${PORT} default_server; \
+    server_name _; \
     root /usr/share/nginx/html; \
     index index.html; \
     location / { \
@@ -35,12 +36,19 @@ RUN echo 'server { \
         return 200 "healthy\n"; \
         add_header Content-Type text/plain; \
     } \
-}' > /etc/nginx/conf.d/default.conf
+}' > /etc/nginx/templates/default.conf.template
 
-EXPOSE 80
+# Copiar script de entrada
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
+# Exponer puerto (Render asignará PORT dinámicamente)
+EXPOSE 10000
+
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-10000}/health || exit 1
 
-CMD ["nginx", "-g", "daemon off;"]
+# Usar script de entrada personalizado
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
