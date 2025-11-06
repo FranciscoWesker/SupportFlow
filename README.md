@@ -56,11 +56,11 @@ npm install
 cp .env.example .env
 ```
 
-Edita el archivo `.env` y añade tus API keys:
+Configura variables del lado servidor (no expuestas al cliente):
 
 ```env
-VITE_GOOGLE_GEMINI_API_KEY=tu_api_key_de_gemini
-VITE_HUGGINGFACE_API_KEY=tu_api_key_de_huggingface
+GOOGLE_GEMINI_API_KEY=tu_api_key_de_gemini
+HUGGINGFACE_API_KEY=tu_api_key_de_huggingface
 ```
 
 **Nota**: Si no configuras las API keys, el chatbot funcionará en modo demo con respuestas simuladas.
@@ -99,9 +99,9 @@ docker build -t supportflow .
 ### Ejecutar con Docker
 
 ```bash
-docker run -p 3000:80 \
-  -e VITE_GOOGLE_GEMINI_API_KEY=tu_api_key \
-  -e VITE_HUGGINGFACE_API_KEY=tu_api_key \
+docker run -p 10000:10000 \
+  -e GOOGLE_GEMINI_API_KEY=tu_api_key \
+  -e HUGGINGFACE_API_KEY=tu_api_key \
   supportflow
 ```
 
@@ -118,8 +118,8 @@ docker-compose up -d
 1. Crear un nuevo servicio Web en Render
 2. Conectar tu repositorio de GitHub
 3. Configurar las variables de entorno:
-   - `VITE_GOOGLE_GEMINI_API_KEY`
-   - `VITE_HUGGINGFACE_API_KEY`
+   - `GOOGLE_GEMINI_API_KEY`
+   - `HUGGINGFACE_API_KEY`
 4. Render detectará automáticamente el archivo `render.yaml`
 
 ### Configuración Manual
@@ -140,8 +140,7 @@ SupportFlow/
 │   │   ├── ChatInput.tsx
 │   │   ├── Header.tsx
 │   │   └── MessageBubble.tsx
-│   ├── config/              # Configuraciones
-│   │   └── api.config.ts
+│   ├── config/              # Configuraciones (reservado)
 │   ├── hooks/               # Custom hooks
 │   │   ├── useChat.ts
 │   │   └── useTheme.ts
