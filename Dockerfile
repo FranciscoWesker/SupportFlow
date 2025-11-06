@@ -7,7 +7,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Instalar dependencias (incluyendo devDependencies para el build)
-RUN npm ci
+# Usa npm ci si hay lockfile, y haz fallback a npm install si falla
+RUN if [ -f package-lock.json ]; then \
+      npm ci || npm install ; \
+    else \
+      npm install ; \
+    fi
 
 # Copiar código fuente
 COPY . .
