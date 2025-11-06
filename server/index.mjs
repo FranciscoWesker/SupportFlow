@@ -11,6 +11,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Configurar trust proxy para funcionar detrás de proxies (Render, nginx, etc.)
+app.set('trust proxy', true);
+
 // Seguridad básica
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: true, credentials: false }));
