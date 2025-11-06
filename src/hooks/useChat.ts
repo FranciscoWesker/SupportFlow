@@ -70,7 +70,7 @@ export const useChat = () => {
             },
           ];
         });
-      } catch (error) {
+      } catch (_error) {
         // Remover mensaje de carga y agregar mensaje de error
         setMessages(prev => {
           const filtered = prev.filter(msg => msg.id !== loadingMessageId);
