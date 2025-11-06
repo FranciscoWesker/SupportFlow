@@ -1,6 +1,7 @@
 import { AxiosError } from 'axios';
 import type { ApiResponse } from '@/types';
 import { createAxiosInstance } from './axios.config';
+import logger from '@/utils/logger';
 
 export const sendMessage = async (
   message: string,
@@ -21,11 +22,8 @@ export const sendMessage = async (
       import.meta.env.MODE === 'production' ? '' : 'http://localhost:10000';
     const axiosInstance = createAxiosInstance(baseURL);
 
-    console.log(
-      'Enviando mensaje a:',
-      baseURL || window.location.origin,
-      '/api/chat'
-    );
+    // Use logger util: debug/info are disabled in production
+    logger.debug('Enviando mensaje a:', baseURL || window.location.origin, '/api/chat');
 
     const r = await axiosInstance.post('/api/chat', {
       message: message.trim(),

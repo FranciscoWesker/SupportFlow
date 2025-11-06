@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import logger from '@/utils/logger';
 
 export const createAxiosInstance = (baseURL?: string): AxiosInstance => {
   const instance = axios.create({
@@ -15,17 +16,13 @@ export const createAxiosInstance = (baseURL?: string): AxiosInstance => {
     (error: AxiosError) => {
       if (error.response) {
         // El servidor respondió con un código de estado fuera del rango 2xx
-        console.error(
-          'Error de respuesta:',
-          error.response.status,
-          error.response.data
-        );
+        logger.error('Error de respuesta:', error.response.status, error.response.data);
       } else if (error.request) {
         // La petición fue hecha pero no se recibió respuesta
-        console.error('Error de red:', error.request);
+        logger.error('Error de red:', error.request);
       } else {
         // Algo pasó al configurar la petición
-        console.error('Error:', error.message);
+        logger.error('Error:', error.message);
       }
       return Promise.reject(error);
     }
