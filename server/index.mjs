@@ -28,7 +28,9 @@ app.set('trust proxy', 1);
 // ============================================
 // MIDDLEWARES GLOBALES
 // ============================================
-// Helmet: en producción aplicamos una CSP más estricta y cabeceras adicionales.
+// Helmet: configuración de seguridad con CSP apropiada para desarrollo y producción.
+// En desarrollo, usamos una CSP más permisiva para facilitar el desarrollo (hot-reload, etc.)
+// pero mantenemos las protecciones básicas activas.
 // Si tu app consulta APIs externas (Sentry, CDNs, websockets, HuggingFace, etc.) añade sus orígenes a connectSrc/scriptSrc/imgSrc.
 const helmetOptions = isProduction
   ? {
@@ -54,7 +56,26 @@ const helmetOptions = isProduction
       // crossOriginEmbedderPolicy: true,
       // crossOriginOpenerPolicy: { policy: 'same-origin' },
     }
-  : { contentSecurityPolicy: false, crossOriginEmbedderPolicy: false };
+  : {
+      // En desarrollo: CSP más permisiva pero aún segura
+      // Permite unsafe-inline/unsafe-eval para facilitar hot-reload de Vite
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'http://localhost', 'http://127.0.0.1'],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'http://localhost', 'http://127.0.0.1'],
+          connectSrc: ["'self'", 'http://localhost', 'http://127.0.0.1', 'ws://localhost', 'ws://127.0.0.1', 'https://api-inference.huggingface.co'],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      // En desarrollo no activamos HSTS
+      hsts: false,
+      referrerPolicy: { policy: 'no-referrer-when-downgrade' },
+    };
 
 app.use(helmet(helmetOptions));
 
