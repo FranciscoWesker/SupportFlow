@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import logger from './logger.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,19 +28,31 @@ app.set('trust proxy', 1);
 // ============================================
 // MIDDLEWARES GLOBALES
 // ============================================
-// Helmet: en producción activamos una CSP restrictiva; en desarrollo permitimos menos restricciones
+// Helmet: en producción aplicamos una CSP más estricta y cabeceras adicionales.
+// Si tu app consulta APIs externas (Sentry, CDNs, websockets, HuggingFace, etc.) añade sus orígenes a connectSrc/scriptSrc/imgSrc.
 const helmetOptions = isProduction
   ? {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:'],
-          connectSrc: ["'self'"],
+          scriptSrc: ["'self'", 'https://supportflow-yorh.onrender.com'],
+          // Evitamos 'unsafe-inline' en style-src para mayor seguridad. Si detectas problemas, añade nonces o hashes.
+          styleSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https://supportflow-yorh.onrender.com'],
+          // Añade dominios externos aquí según sea necesario (ej: HuggingFace inference API)
+          connectSrc: ["'self'", 'https://api-inference.huggingface.co', 'https://supportflow-yorh.onrender.com'],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
           frameAncestors: ["'none'"],
         },
       },
+      // HSTS: solo aplicable si sirves HTTPS en producción
+      hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
+      referrerPolicy: { policy: 'no-referrer-when-downgrade' },
+      // Opcional: activar COOP/COEP si tu app lo requiere (p. ej. SharedArrayBuffer). Descomenta si lo necesitas.
+      // crossOriginEmbedderPolicy: true,
+      // crossOriginOpenerPolicy: { policy: 'same-origin' },
     }
   : { contentSecurityPolicy: false, crossOriginEmbedderPolicy: false };
 
@@ -94,10 +107,13 @@ app.use('/api', apiLimiter);
 app.use('/api/chat', chatLimiter);
 
 app.use('/api', (req, res, next) => {
-  console.log(`[API] ${req.method} ${req.path}`, {
-    body: req.body ? 'presente' : 'ausente',
+  logger.info({
+    route: '/api',
+    method: req.method,
+    path: req.path,
+    bodyPresent: Boolean(req.body),
     ip: req.ip,
-    time: new Date().toISOString()
+    time: new Date().toISOString(),
   });
   next();
 });
@@ -134,11 +150,11 @@ app.post('/api/chat', async (req, res) => {
   const startTime = Date.now();
 
   try {
-    console.log('[CHAT] Iniciando procesamiento');
+    logger.info({ event: 'chat_process_start' });
 
     // Validar body
     if (!req.body) {
-      console.error('[CHAT] Body vacío');
+      logger.warn({ event: 'chat_empty_body' });
       return res.status(400).json({
         success: false,
         error: 'Body de la petición vacío',
@@ -149,7 +165,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Validar mensaje
     if (!message || typeof message !== 'string') {
-      console.error('[CHAT] Mensaje inválido:', typeof message);
+      logger.warn({ event: 'chat_invalid_message', type: typeof message });
       return res.status(400).json({
         success: false,
         error: 'Mensaje inválido o vacío',
@@ -158,7 +174,7 @@ app.post('/api/chat', async (req, res) => {
 
     const cleanMessage = sanitize(message);
     if (!cleanMessage || cleanMessage.length === 0) {
-      console.error('[CHAT] Mensaje vacío después de sanitizar');
+      logger.warn({ event: 'chat_empty_after_sanitize' });
       return res.status(400).json({
         success: false,
         error: 'Mensaje vacío',
@@ -166,7 +182,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
   // No registrar texto de usuario en logs; registrar solo metadatos
-  console.log(`[CHAT] Mensaje válido (len=${cleanMessage.length})`);
+  logger.debug({ event: 'chat_message_valid', length: cleanMessage.length });
 
     // Selección de proveedor
     const hfKey = process.env.HUGGINGFACE_API_KEY;
@@ -175,7 +191,7 @@ app.post('/api/chat', async (req, res) => {
     const preferHf = Boolean(hfKey) && (provider === 'huggingface' || !geminiKey);
 
     if (preferHf) {
-      console.log('[CHAT] Usando HuggingFace inference API, modelo:', hfModel);
+      logger.info({ event: 'chat_use_hf', model: hfModel });
 
       try {
         const hfResp = await fetch(`https://api-inference.huggingface.co/models/${hfModel}`, {
@@ -204,11 +220,11 @@ app.post('/api/chat', async (req, res) => {
           text = JSON.stringify(hfData);
         }
 
-        const duration = Date.now() - startTime;
-        console.log(`[CHAT] Respuesta HF procesada en ${duration}ms`);
+    const duration = Date.now() - startTime;
+    logger.info({ event: 'chat_hf_response', durationMs: duration });
         return res.json({ success: true, message: text });
       } catch (hfErr) {
-        console.error('[CHAT] Error HuggingFace:', hfErr?.message || hfErr);
+        logger.error({ event: 'chat_hf_error', error: hfErr?.message || hfErr });
         return res.status(502).json({ success: false, error: 'Error en HuggingFace' });
       }
     }
@@ -217,14 +233,14 @@ app.post('/api/chat', async (req, res) => {
     const geminiModel = 'models/gemini-2.5-flash';
 
     if (!geminiKey) {
-      console.error('[CHAT] Clave de API de Gemini no configurada');
+      logger.error({ event: 'chat_gemini_key_missing' });
       return res.status(503).json({
         success: false,
         error: 'Clave de API de Gemini no configurada',
       });
     }
 
-    console.log('[CHAT] Enviando request a Gemini (modelo):', geminiModel);
+  logger.info({ event: 'chat_use_gemini', model: geminiModel });
 
     // Enviar la solicitud a la API de Gemini
     const response = await ai.models.generateContent({
@@ -232,21 +248,23 @@ app.post('/api/chat', async (req, res) => {
       contents: cleanMessage,
     });
 
-    console.log('[CHAT] Respuesta de Gemini recibida:', response.status);
+  logger.info({ event: 'chat_gemini_response', status: response.status });
 
     if (!response.text) {
-      console.error('[CHAT] Respuesta de Gemini sin texto:', JSON.stringify(response.data, null, 2));
+      logger.error({ event: 'chat_gemini_no_text', data: response.data });
       throw new Error('Respuesta vacía de Gemini');
     }
 
     const text = response.text;
     const duration = Date.now() - startTime;
 
-    console.log(`[CHAT] Respuesta procesada en ${duration}ms`);
+    logger.info({ event: 'chat_response_processed', durationMs: duration });
     return res.json({ success: true, message: text });
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[CHAT] Error después de ${duration}ms:`, {
+    logger.error({
+      event: 'chat_error',
+      durationMs: duration,
       message: error?.message,
       status: error?.response?.status,
       data: error?.response?.data,
@@ -265,9 +283,25 @@ app.post('/api/chat', async (req, res) => {
 // ============================================
 // SERVIR ARCHIVOS ESTÁTICOS (DESPUÉS de API)
 // ============================================
+// Limiter para rutas estáticas / SPA — protege sendFile/res.sendFile de acceso excesivo al FS
+const staticLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200, // requests per minute per IP to static assets
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Demasiadas peticiones a recursos estáticos, intenta de nuevo más tarde'
+    });
+  }
+});
+
+// Aplicar limiter a rutas estáticas y SPA catch-all
+app.use(staticLimiter);
 const distDir = path.resolve(__dirname, '../dist');
 
-console.log('[SERVER] Directorio dist:', distDir);
+logger.info({ event: 'server_dist_dir', distDir });
 
 // Servir archivos estáticos
 app.use(express.static(distDir, {
@@ -290,7 +324,7 @@ app.get('*', (req, res) => {
   // Servir index.html para todas las demás rutas (SPA)
   res.sendFile(path.join(distDir, 'index.html'), (err) => {
     if (err) {
-      console.error('[SPA] Error sirviendo index.html:', err);
+      logger.error({ event: 'spa_sendfile_error', error: err?.message || err });
       res.status(500).send('Error al cargar la aplicación');
     }
   });
@@ -300,12 +334,12 @@ app.get('*', (req, res) => {
 // MANEJO DE ERRORES 404 PARA POST
 // ============================================
 app.use((req, res) => {
-  console.warn(`[404] ${req.method} ${req.path}`);
-  res.status(404).json({ 
-    success: false, 
+  logger.warn({ event: 'not_found', method: req.method, path: req.path });
+  res.status(404).json({
+    success: false,
     error: 'Ruta no encontrada',
     path: req.path,
-    method: req.method
+    method: req.method,
   });
 });
 
@@ -314,10 +348,10 @@ app.use((req, res) => {
 // ============================================
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
-  console.error('[ERROR]', err);
-  res.status(500).json({ 
-    success: false, 
-    error: 'Error interno del servidor' 
+  logger.error({ event: 'server_error', error: err?.message || err });
+  res.status(500).json({
+    success: false,
+    error: 'Error interno del servidor',
   });
 });
 
@@ -325,29 +359,27 @@ app.use((err, req, res, _next) => {
 // INICIAR SERVIDOR
 // ============================================
 const server = app.listen(port, '0.0.0.0', () => {
-  console.log('='.repeat(60));
-  console.log(`✅ Servidor Express iniciado`);
-  console.log(`📡 Puerto: ${port}`);
-  console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 Health: http://localhost:${port}/health`);
-  console.log(`🧪 Test: http://localhost:${port}/api/test`);
-  console.log(`💬 Chat: http://localhost:${port}/api/chat`);
-  console.log(`🔑 Gemini: ${geminiKey ? '✅' : '❌'}`);
-  console.log(`🔑 HuggingFace: ${process.env.HUGGINGFACE_API_KEY ? '✅' : '❌'}`);
-  console.log('='.repeat(60));
+  logger.info({
+    event: 'server_start',
+    port,
+    env: process.env.NODE_ENV || 'development',
+    endpoints: { health: '/health', test: '/api/test', chat: '/api/chat' },
+    geminiConfigured: Boolean(geminiKey),
+    huggingfaceConfigured: Boolean(process.env.HUGGINGFACE_API_KEY),
+  });
 });
 
 // Manejo de señales para shutdown graceful
 const shutdown = () => {
-  console.log('\n🛑 Cerrando servidor...');
+  logger.info({ event: 'shutdown_start' });
   server.close(() => {
-    console.log('✅ Servidor cerrado correctamente');
+    logger.info({ event: 'shutdown_complete' });
     process.exit(0);
   });
-  
+
   // Forzar cierre después de 10 segundos
   setTimeout(() => {
-    console.error('⚠️ Forzando cierre del servidor');
+    logger.error({ event: 'shutdown_forced' });
     process.exit(1);
   }, 10000);
 
