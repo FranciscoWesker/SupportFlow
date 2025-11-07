@@ -2,10 +2,6 @@
 
 Sistema de chatbot profesional de soporte técnico construido con React, TypeScript y Chat UI Kit de Chatscope. Diseñado para resolver consultas y problemas comunes de usuarios mediante una interfaz moderna, responsive y accesible.
 
-## Descripción
-
-SupportFlow es una aplicación web de chat interactivo que permite a los usuarios obtener asistencia técnica mediante un sistema de conversación inteligente. El sistema integra APIs de inteligencia artificial (Google Gemini y Hugging Face) para proporcionar respuestas contextuales y mantener el historial de conversación.
-
 ## Características Principales
 
 - **Interfaz Moderna y Responsive**: Diseño limpio y adaptable a todos los dispositivos (móviles, tablets y desktop)
