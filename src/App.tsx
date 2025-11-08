@@ -11,9 +11,9 @@ function App() {
   const { currentConversationId, selectConversation } = useConversations();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Header />
-      <div className="flex relative">
+      <div className="flex flex-1 relative overflow-hidden">
         {/* Botón para abrir historial (móvil) */}
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -26,7 +26,7 @@ function App() {
         </motion.button>
 
         {/* Sidebar de historial (desktop) */}
-        <div className="hidden lg:block w-80 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <div className="hidden lg:flex lg:flex-shrink-0 w-80 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 h-full">
           <ConversationHistory
             isOpen={true}
             onClose={() => {}}
@@ -36,7 +36,7 @@ function App() {
         </div>
 
         {/* Chat principal */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <Chat conversationId={currentConversationId} />
         </div>
 

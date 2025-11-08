@@ -28,7 +28,7 @@ export const useChat = (options: UseChatOptions = {}) => {
       const loadConversation = async () => {
         try {
           const data = await getConversation(conversationId);
-          if (data && data.messages.length > 0) {
+          if (data && data.messages && data.messages.length > 0) {
             // Convertir mensajes de MongoDB al formato del frontend
             const formattedMessages: Message[] = data.messages.map(
               (msg: Message) => ({
@@ -42,12 +42,44 @@ export const useChat = (options: UseChatOptions = {}) => {
               })
             );
             setMessages(formattedMessages);
+          } else {
+            // Si no hay mensajes, mostrar mensaje de bienvenida
+            setMessages([
+              {
+                id: '1',
+                content:
+                  '¡Hola! Soy SupportFlow, tu asistente de soporte técnico. ¿En qué puedo ayudarte hoy?',
+                sender: 'bot',
+                timestamp: new Date(),
+              },
+            ]);
           }
         } catch (error) {
           console.error('Error al cargar conversación:', error);
+          // En caso de error, mostrar mensaje de bienvenida
+          setMessages([
+            {
+              id: '1',
+              content:
+                '¡Hola! Soy SupportFlow, tu asistente de soporte técnico. ¿En qué puedo ayudarte hoy?',
+              sender: 'bot',
+              timestamp: new Date(),
+            },
+          ]);
         }
       };
       loadConversation();
+    } else {
+      // Si no hay conversationId, resetear a mensaje de bienvenida
+      setMessages([
+        {
+          id: '1',
+          content:
+            '¡Hola! Soy SupportFlow, tu asistente de soporte técnico. ¿En qué puedo ayudarte hoy?',
+          sender: 'bot',
+          timestamp: new Date(),
+        },
+      ]);
     }
   }, [conversationId]);
 
