@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import logger from './logger.mjs';
-import { connectMongoDB, disconnectMongoDB } from './db/mongodb.mjs';
+import { connectMongoDB, disconnectMongoDB, isMongoDBConnected } from './db/mongodb.mjs';
 import Conversation from './models/Conversation.mjs';
 import Message from './models/Message.mjs';
 import { decrypt } from './utils/encryption.mjs';
@@ -42,7 +42,12 @@ const helmetOptions = isProduction
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", 'https://supportflow-yorh.onrender.com'],
+          scriptSrc: [
+            "'self'",
+            'https://supportflow-yorh.onrender.com',
+            "'sha256-wJouey+pdwXJr+iQSY4fYg7eS9KWjP73QhCAqPnw2Pk='",
+            "'sha256-ZswfTY7H35rbv8WC7NXBoiC7WNu86vSzCDChNWwZZDM='",
+          ],
           // Evitamos 'unsafe-inline' en style-src para mayor seguridad. Si detectas problemas, añade nonces o hashes.
           styleSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'https://supportflow-yorh.onrender.com'],
@@ -173,19 +178,36 @@ app.get('/api/test', (req, res) => {
 // Listar todas las conversaciones
 app.get('/api/conversations', async (req, res) => {
   try {
+    // Verificar conexión a MongoDB
+    if (!isMongoDBConnected()) {
+      logger.warn({ event: 'mongodb_not_connected', endpoint: '/api/conversations' });
+      return res.status(503).json({
+        success: false,
+        error: 'Servicio de base de datos no disponible',
+      });
+    }
+
     const conversations = await Conversation.find({})
       .sort({ lastMessageAt: -1 })
       .limit(100)
       .lean();
 
-    const decryptedConversations = Conversation.decryptConversations(conversations);
+    // Descifrar conversaciones manualmente para evitar problemas con métodos estáticos
+    const decryptedConversations = conversations.map(conv => ({
+      ...conv,
+      title: decrypt(conv.title || 'Nueva conversación'),
+    }));
     
     res.json({
       success: true,
       conversations: decryptedConversations,
     });
   } catch (error) {
-    logger.error({ event: 'conversations_list_error', error: error.message });
+    logger.error({ 
+      event: 'conversations_list_error', 
+      error: error.message,
+      stack: error.stack 
+    });
     res.status(500).json({
       success: false,
       error: 'Error al listar conversaciones',
@@ -224,7 +246,11 @@ app.get('/api/conversations/:id', async (req, res) => {
       ...conversation,
       title: decrypt(conversation.title),
     };
-    const decryptedMessages = Message.decryptMessages(messages);
+    // Descifrar mensajes manualmente para evitar problemas con métodos estáticos
+    const decryptedMessages = messages.map(msg => ({
+      ...msg,
+      content: decrypt(msg.content || ''),
+    }));
 
     res.json({
       success: true,
@@ -535,7 +561,11 @@ app.get('/api/conversations/search', async (req, res) => {
       _id: { $in: validObjectIds },
     }).lean();
 
-    const decryptedConversations = Conversation.decryptConversations(conversations);
+    // Descifrar conversaciones manualmente
+    const decryptedConversations = conversations.map(conv => ({
+      ...conv,
+      title: decrypt(conv.title || 'Nueva conversación'),
+    }));
 
     res.json({
       success: true,
