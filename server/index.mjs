@@ -59,7 +59,7 @@ const helmetOptions = isProduction
           scriptSrc: [
             "'self'",
             'https://supportflow-yorh.onrender.com',
-            (req, res) => `'nonce-${req.nonce}'`, // Nonce dinámico por request
+            (req) => `'nonce-${req.nonce}'`, // Nonce dinámico por request
           ],
           styleSrc: ["'self'", "'unsafe-inline'"], // Vite genera estilos inline
           imgSrc: ["'self'", 'data:', 'https://supportflow-yorh.onrender.com'],
