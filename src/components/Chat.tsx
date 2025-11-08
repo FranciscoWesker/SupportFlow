@@ -4,6 +4,7 @@ import { useChat } from '@/hooks/useChat';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ExportDialog } from './ExportDialog';
+import { QuickSuggestions } from './QuickSuggestions';
 import { Trash2, Download } from 'lucide-react';
 import { useConversations } from '@/hooks/useConversations';
 
@@ -26,6 +27,9 @@ export const Chat = ({ conversationId }: ChatProps) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Mostrar sugerencias solo si hay 1 mensaje (solo el mensaje de bienvenida)
+  const showSuggestions = messages.length === 1;
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50 dark:bg-gray-900">
@@ -68,6 +72,12 @@ export const Chat = ({ conversationId }: ChatProps) => {
               }}
             />
           ))}
+          {showSuggestions && (
+            <QuickSuggestions
+              onSelect={sendMessage}
+              isLoading={isLoading}
+            />
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
