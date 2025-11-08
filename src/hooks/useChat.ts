@@ -1,8 +1,14 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Message } from '@/types';
 import { sendMessage as sendMessageToApi } from '@/services/api.service';
+import { saveMessage, getConversation } from '@/services/conversation.service';
 
-export const useChat = () => {
+interface UseChatOptions {
+  conversationId?: string | null;
+}
+
+export const useChat = (options: UseChatOptions = {}) => {
+  const { conversationId } = options;
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -15,6 +21,33 @@ export const useChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   // Ref para evitar envíos concurrentes (race conditions entre eventos y setState)
   const sendingRef = useRef(false);
+
+  // Cargar mensajes de MongoDB si hay conversationId
+  useEffect(() => {
+    if (conversationId) {
+      const loadConversation = async () => {
+        try {
+          const data = await getConversation(conversationId);
+          if (data && data.messages.length > 0) {
+            // Convertir mensajes de MongoDB al formato del frontend
+            const formattedMessages: Message[] = data.messages.map((msg: any) => ({
+              id: msg._id || msg.id || Date.now().toString(),
+              _id: msg._id,
+              content: msg.content,
+              sender: msg.sender,
+              timestamp: new Date(msg.timestamp),
+              feedback: msg.feedback || null,
+              conversationId: msg.conversationId,
+            }));
+            setMessages(formattedMessages);
+          }
+        } catch (error) {
+          console.error('Error al cargar conversación:', error);
+        }
+      };
+      loadConversation();
+    }
+  }, [conversationId]);
 
   const addMessage = useCallback((content: string, sender: 'user' | 'bot') => {
     const newMessage: Message = {
@@ -34,7 +67,13 @@ export const useChat = () => {
       sendingRef.current = true;
 
       // Agregar mensaje del usuario
-      addMessage(content, 'user');
+      const userMessage: Message = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        content,
+        sender: 'user',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, userMessage]);
 
       // Agregar mensaje de carga del bot
       const loadingMessageId =
@@ -50,8 +89,8 @@ export const useChat = () => {
       setIsLoading(true);
 
       try {
-        // Preparar historial de conversación
-        const conversationHistory = messages
+        // Preparar historial de conversación (incluyendo el mensaje del usuario recién agregado)
+        const conversationHistory = [...messages, userMessage]
           .filter(msg => !msg.isLoading)
           .map(msg => ({
             role: msg.sender === 'user' ? 'user' : 'assistant',
@@ -61,20 +100,52 @@ export const useChat = () => {
         // Enviar mensaje a la API
         const response = await sendMessageToApi(content, conversationHistory);
 
+        // Guardar mensaje del usuario en MongoDB si hay conversationId (solo una vez)
+        if (conversationId) {
+          try {
+            const savedMessage = await saveMessage(conversationId, content, 'user');
+            if (savedMessage && savedMessage._id) {
+              // Actualizar el mensaje con el ID de MongoDB
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === userMessage.id ? { ...msg, _id: savedMessage._id } : msg
+                )
+              );
+            }
+          } catch (error) {
+            console.error('Error al guardar mensaje del usuario:', error);
+          }
+        }
+
         // Remover mensaje de carga y agregar respuesta
+        const botMessage: Message = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          content: response.message,
+          sender: 'bot',
+          timestamp: new Date(),
+        };
+
         setMessages(prev => {
           const filtered = prev.filter(msg => msg.id !== loadingMessageId);
-          return [
-            ...filtered,
-            {
-              id:
-                Date.now().toString() + Math.random().toString(36).substr(2, 9),
-              content: response.message,
-              sender: 'bot',
-              timestamp: new Date(),
-            },
-          ];
+          return [...filtered, botMessage];
         });
+
+        // Guardar mensaje del bot en MongoDB si hay conversationId
+        if (conversationId) {
+          try {
+            const savedMessage = await saveMessage(conversationId, response.message, 'bot');
+            if (savedMessage && savedMessage._id) {
+              // Actualizar el mensaje con el ID de MongoDB
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === botMessage.id ? { ...msg, _id: savedMessage._id } : msg
+                )
+              );
+            }
+          } catch (error) {
+            console.error('Error al guardar mensaje del bot:', error);
+          }
+        }
       } catch (_error) {
         // Remover mensaje de carga y agregar mensaje de error
         setMessages(prev => {
@@ -96,7 +167,7 @@ export const useChat = () => {
         sendingRef.current = false;
       }
     },
-    [messages, addMessage, isLoading]
+    [messages, addMessage, isLoading, conversationId]
   );
 
   const clearMessages = useCallback(() => {

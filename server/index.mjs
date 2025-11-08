@@ -6,6 +6,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import logger from './logger.mjs';
+import { connectMongoDB, disconnectMongoDB } from './db/mongodb.mjs';
+import Conversation from './models/Conversation.mjs';
+import Message from './models/Message.mjs';
+import { decrypt } from './utils/encryption.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -161,12 +165,321 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// ============================================
+// ENDPOINTS DE CONVERSACIONES
+// ============================================
+
+// Listar todas las conversaciones
+app.get('/api/conversations', async (req, res) => {
+  try {
+    const conversations = await Conversation.find({})
+      .sort({ lastMessageAt: -1 })
+      .limit(100)
+      .lean();
+
+    const decryptedConversations = Conversation.decryptConversations(conversations);
+    
+    res.json({
+      success: true,
+      conversations: decryptedConversations,
+    });
+  } catch (error) {
+    logger.error({ event: 'conversations_list_error', error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error al listar conversaciones',
+    });
+  }
+});
+
+// Obtener una conversación con sus mensajes
+app.get('/api/conversations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const conversation = await Conversation.findById(id).lean();
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversación no encontrada',
+      });
+    }
+
+    const messages = await Message.find({ conversationId: id })
+      .sort({ timestamp: 1 })
+      .lean();
+
+    const decryptedConversation = {
+      ...conversation,
+      title: decrypt(conversation.title),
+    };
+    const decryptedMessages = Message.decryptMessages(messages);
+
+    res.json({
+      success: true,
+      conversation: decryptedConversation,
+      messages: decryptedMessages,
+    });
+  } catch (error) {
+    logger.error({ event: 'conversation_get_error', error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener conversación',
+    });
+  }
+});
+
+// Crear nueva conversación
+app.post('/api/conversations', async (req, res) => {
+  try {
+    const { title } = req.body;
+    
+    const conversation = new Conversation({
+      title: title || 'Nueva conversación',
+      messageCount: 0,
+      lastMessageAt: new Date(),
+    });
+
+    await conversation.save();
+    
+    const decryptedConversation = {
+      ...conversation.toObject(),
+      title: conversation.getDecryptedTitle(),
+    };
+
+    res.status(201).json({
+      success: true,
+      conversation: decryptedConversation,
+    });
+  } catch (error) {
+    logger.error({ event: 'conversation_create_error', error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error al crear conversación',
+    });
+  }
+});
+
+// Actualizar título de conversación
+app.put('/api/conversations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Título inválido',
+      });
+    }
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversación no encontrada',
+      });
+    }
+
+    conversation.title = title;
+    await conversation.save();
+
+    const decryptedConversation = {
+      ...conversation.toObject(),
+      title: conversation.getDecryptedTitle(),
+    };
+
+    res.json({
+      success: true,
+      conversation: decryptedConversation,
+    });
+  } catch (error) {
+    logger.error({ event: 'conversation_update_error', error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error al actualizar conversación',
+    });
+  }
+});
+
+// Eliminar conversación
+app.delete('/api/conversations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Eliminar mensajes asociados
+    await Message.deleteMany({ conversationId: id });
+    
+    // Eliminar conversación
+    const conversation = await Conversation.findByIdAndDelete(id);
+    
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversación no encontrada',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Conversación eliminada',
+    });
+  } catch (error) {
+    logger.error({ event: 'conversation_delete_error', error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error al eliminar conversación',
+    });
+  }
+});
+
+// Guardar mensaje en conversación
+app.post('/api/conversations/:id/messages', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content, sender } = req.body;
+
+    if (!content || !sender || !['user', 'bot'].includes(sender)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Datos de mensaje inválidos',
+      });
+    }
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversación no encontrada',
+      });
+    }
+
+    const message = new Message({
+      conversationId: id,
+      content: sanitize(content),
+      sender,
+      timestamp: new Date(),
+    });
+
+    await message.save();
+
+    // Actualizar conversación
+    conversation.messageCount += 1;
+    conversation.lastMessageAt = new Date();
+    await conversation.save();
+
+    const decryptedMessage = {
+      ...message.toObject(),
+      content: message.getDecryptedContent(),
+    };
+
+    res.status(201).json({
+      success: true,
+      message: decryptedMessage,
+    });
+  } catch (error) {
+    logger.error({ event: 'message_save_error', error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error al guardar mensaje',
+    });
+  }
+});
+
+// Actualizar feedback de mensaje
+app.put('/api/messages/:id/feedback', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { feedback } = req.body;
+
+    if (feedback && !['up', 'down'].includes(feedback)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Feedback inválido',
+      });
+    }
+
+    const message = await Message.findByIdAndUpdate(
+      id,
+      { feedback: feedback || null },
+      { new: true }
+    );
+
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+        error: 'Mensaje no encontrado',
+      });
+    }
+
+    const decryptedMessage = {
+      ...message.toObject(),
+      content: message.getDecryptedContent(),
+    };
+
+    res.json({
+      success: true,
+      message: decryptedMessage,
+    });
+  } catch (error) {
+    logger.error({ event: 'message_feedback_error', error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error al actualizar feedback',
+    });
+  }
+});
+
+// Búsqueda en conversaciones
+app.get('/api/conversations/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || typeof q !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Query de búsqueda inválido',
+      });
+    }
+
+    // Buscar en mensajes (contenido descifrado)
+    const messages = await Message.find({}).lean();
+    const matchingMessages = messages.filter(msg => {
+      const decryptedContent = decrypt(msg.content);
+      return decryptedContent.toLowerCase().includes(q.toLowerCase());
+    });
+
+    // Obtener IDs únicos de conversaciones
+    const conversationIds = [...new Set(matchingMessages.map(msg => msg.conversationId.toString()))];
+    
+    const conversations = await Conversation.find({
+      _id: { $in: conversationIds },
+    }).lean();
+
+    const decryptedConversations = Conversation.decryptConversations(conversations);
+
+    res.json({
+      success: true,
+      conversations: decryptedConversations,
+      count: decryptedConversations.length,
+    });
+  } catch (error) {
+    logger.error({ event: 'conversations_search_error', error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error en búsqueda',
+    });
+  }
+});
+
 // Nota: rate limiting aplicado globalmente y para /api/chat más arriba
 
 // Función de sanitización
 const sanitize = (s) => String(s || '').trim().replace(/[<>]/g, '');
 
-// Endpoint principal de chat
+// ============================================
+// ENDPOINT PRINCIPAL DE CHAT
+// ============================================
 app.post('/api/chat', async (req, res) => {
   const startTime = Date.now();
 
@@ -182,7 +495,7 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-  const { message, provider } = req.body;
+  const { message, provider, history } = req.body;
 
     // Validar mensaje
     if (!message || typeof message !== 'string') {
@@ -203,7 +516,11 @@ app.post('/api/chat', async (req, res) => {
     }
 
   // No registrar texto de usuario en logs; registrar solo metadatos
-  logger.debug({ event: 'chat_message_valid', length: cleanMessage.length });
+  logger.debug({ 
+    event: 'chat_message_valid', 
+    length: cleanMessage.length,
+    hasHistory: Boolean(history && Array.isArray(history) && history.length > 0)
+  });
 
     // Selección de proveedor
     const hfKey = process.env.HUGGINGFACE_API_KEY;
@@ -263,10 +580,36 @@ app.post('/api/chat', async (req, res) => {
 
   logger.info({ event: 'chat_use_gemini', model: geminiModel });
 
+    // Preparar el historial de conversación para Gemini
+    // La API de Gemini espera un array de mensajes con role y content
+    let contents = cleanMessage;
+    if (history && Array.isArray(history) && history.length > 0) {
+      // Construir el array de mensajes para Gemini
+      // Formato: [{ role: 'user', content: '...' }, { role: 'assistant', content: '...' }]
+      const historyMessages = history.map((msg) => ({
+        role: msg.role === 'user' ? 'user' : 'model', // Gemini usa 'model' en lugar de 'assistant'
+        parts: [{ text: msg.content }],
+      }));
+      
+      // Agregar el mensaje actual
+      historyMessages.push({
+        role: 'user',
+        parts: [{ text: cleanMessage }],
+      });
+      
+      contents = historyMessages;
+    } else {
+      // Si no hay historial, usar solo el mensaje actual
+      contents = {
+        role: 'user',
+        parts: [{ text: cleanMessage }],
+      };
+    }
+
     // Enviar la solicitud a la API de Gemini
     const response = await ai.models.generateContent({
       model: geminiModel,
-      contents: cleanMessage,
+      contents: Array.isArray(contents) ? contents : [contents],
     });
 
   logger.info({ event: 'chat_gemini_response', status: response.status });
@@ -379,20 +722,39 @@ app.use((err, req, res, _next) => {
 // ============================================
 // INICIAR SERVIDOR
 // ============================================
-const server = app.listen(port, '0.0.0.0', () => {
+// Conectar a MongoDB antes de iniciar el servidor
+connectMongoDB().catch((error) => {
+  logger.error({ 
+    event: 'mongodb_connection_failed_startup', 
+    error: error.message 
+  });
+  // Continuar sin MongoDB si falla (modo degradado)
+});
+
+const server = app.listen(port, '0.0.0.0', async () => {
   logger.info({
     event: 'server_start',
     port,
     env: process.env.NODE_ENV || 'development',
-    endpoints: { health: '/health', test: '/api/test', chat: '/api/chat' },
+    endpoints: { 
+      health: '/health', 
+      test: '/api/test', 
+      chat: '/api/chat',
+      conversations: '/api/conversations'
+    },
     geminiConfigured: Boolean(geminiKey),
     huggingfaceConfigured: Boolean(process.env.HUGGINGFACE_API_KEY),
+    mongodbConfigured: Boolean(process.env.MONGODB_URI),
   });
 });
 
 // Manejo de señales para shutdown graceful
-const shutdown = () => {
+const shutdown = async () => {
   logger.info({ event: 'shutdown_start' });
+  
+  // Desconectar MongoDB
+  await disconnectMongoDB();
+  
   server.close(() => {
     logger.info({ event: 'shutdown_complete' });
     process.exit(0);
