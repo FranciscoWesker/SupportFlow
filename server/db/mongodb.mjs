@@ -15,10 +15,19 @@ export async function connectMongoDB() {
   const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/supportflow';
   
   try {
-    await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+    // Configuración para MongoDB Atlas (mongodb+srv://) o MongoDB local
+    const connectionOptions = {
+      serverSelectionTimeoutMS: 10000, // Aumentado para Atlas
       socketTimeoutMS: 45000,
-    });
+    };
+
+    // Si es MongoDB Atlas (mongodb+srv://), agregar opciones adicionales
+    if (mongoUri.startsWith('mongodb+srv://')) {
+      connectionOptions.retryWrites = true;
+      connectionOptions.w = 'majority';
+    }
+
+    await mongoose.connect(mongoUri, connectionOptions);
 
     isConnected = true;
     logger.info({ 

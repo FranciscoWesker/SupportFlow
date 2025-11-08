@@ -110,13 +110,39 @@ docker-compose up -d
 
 ## Despliegue en Render
 
+### Configuración de MongoDB Atlas
+
+Antes de desplegar en Render, configura MongoDB Atlas:
+
+1. **Configurar acceso de red en MongoDB Atlas**:
+   - En el panel de MongoDB Atlas, ve a **Network Access**
+   - Haz clic en **Add IP Address**
+   - En Render, ve a tu servicio → **Connect** → pestaña **Outbound**
+   - Copia las direcciones IP de salida de Render
+   - Agrega estas IPs a la lista de IPs permitidas en Atlas
+   - O usa `0.0.0.0/0` temporalmente para desarrollo (no recomendado para producción)
+
+2. **Obtener la cadena de conexión**:
+   - En MongoDB Atlas, ve a tu clúster → **Connect** → **Drivers**
+   - Copia la cadena de conexión
+   - Reemplaza `<username>` y `<password>` con tus credenciales reales
+   - Añade el nombre de la base de datos al final: `/supportflow`
+   - Ejemplo: `mongodb+srv://usuario:contraseña@cluster.mongodb.net/supportflow?retryWrites=true&w=majority`
+
 ### Configuración Automática
 
 1. Crear un nuevo servicio Web en Render
 2. Conectar tu repositorio de GitHub
-3. Configurar las variables de entorno:
-   - `GOOGLE_GEMINI_API_KEY`
-   - `HUGGINGFACE_API_KEY`
+3. Configurar las variables de entorno en el dashboard de Render:
+   - `GOOGLE_GEMINI_API_KEY` - Tu API key de Google Gemini
+   - `HUGGINGFACE_API_KEY` - (Opcional) Tu API key de Hugging Face
+   - `MONGODB_URI` - URI de conexión a MongoDB Atlas
+     ```
+     mongodb+srv://usuario:contraseña@cluster.mongodb.net/supportflow?retryWrites=true&w=majority&appName=MyApp
+     ```
+     **Nota**: Si tu contraseña tiene caracteres especiales, codifícalos en URL (ej: `@` → `%40`)
+   - `ENCRYPTION_KEY` - Clave de cifrado hexadecimal de 64 caracteres
+     (Generar con: `node server/utils/generate-key.mjs`)
 4. Render detectará automáticamente el archivo `render.yaml`
 
 ### Configuración Manual
@@ -124,8 +150,20 @@ docker-compose up -d
 Si prefieres configurar manualmente:
 
 - **Build Command**: `npm ci && npm run build`
-- **Start Command**: `npm run preview`
+- **Start Command**: `node server/index.mjs`
 - **Environment**: `Node`
+- **Port**: `10000`
+
+### Variables de Entorno Requeridas en Render
+
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `MONGODB_URI` | URI de conexión a MongoDB Atlas | `mongodb+srv://user:pass@cluster.mongodb.net/db` |
+| `ENCRYPTION_KEY` | Clave de cifrado (64 caracteres hex) | `abc123...` (generar con script) |
+| `GOOGLE_GEMINI_API_KEY` | API key de Google Gemini | `AIza...` |
+| `HUGGINGFACE_API_KEY` | (Opcional) API key de Hugging Face | `hf_...` |
+| `NODE_ENV` | Entorno de ejecución | `production` |
+| `PORT` | Puerto del servidor | `10000` |
 
 ## Estructura del Proyecto
 
