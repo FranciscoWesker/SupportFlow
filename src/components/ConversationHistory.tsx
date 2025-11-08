@@ -10,6 +10,7 @@ interface ConversationHistoryProps {
   onClose: () => void;
   onSelectConversation: (id: string | null) => void;
   currentConversationId: string | null;
+  isMobile?: boolean;
 }
 
 interface SidebarContentProps {
@@ -24,6 +25,7 @@ interface SidebarContentProps {
   displayConversations: Conversation[];
   onDelete: (id: string) => void;
   onEdit: (id: string, title: string) => void;
+  isMobile?: boolean;
 }
 
 const SidebarContent = ({
@@ -38,11 +40,12 @@ const SidebarContent = ({
   displayConversations,
   onDelete,
   onEdit,
+  isMobile = false,
 }: SidebarContentProps) => {
   return (
     <>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <History className="w-5 h-5 text-primary-500" />
@@ -50,12 +53,12 @@ const SidebarContent = ({
               Conversaciones
             </h2>
           </div>
-          {onClose && (
+          {isMobile && onClose && (
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
               aria-label="Cerrar historial"
             >
               <X className="w-5 h-5" />
@@ -65,13 +68,13 @@ const SidebarContent = ({
 
         {/* Search Bar */}
         <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Buscar conversaciones..."
             value={searchQuery}
             onChange={e => onSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
           />
         </div>
 
@@ -81,15 +84,15 @@ const SidebarContent = ({
           whileTap={{ scale: 0.98 }}
           onClick={onNewConversation}
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
         >
           <Plus className="w-5 h-5" />
-          <span>Nueva conversación</span>
+          <span className="font-medium">Nueva conversación</span>
         </motion.button>
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
         {isLoading && !searchQuery.trim() ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-8">
             Cargando conversaciones...
@@ -128,6 +131,7 @@ export const ConversationHistory = ({
   onClose,
   onSelectConversation,
   currentConversationId,
+  isMobile = false,
 }: ConversationHistoryProps) => {
   const {
     conversations,
@@ -145,7 +149,10 @@ export const ConversationHistory = ({
     const newConv = await createNewConversation();
     if (newConv) {
       onSelectConversation(newConv._id);
-      onClose();
+      // Solo cerrar en móvil
+      if (isMobile && onClose) {
+        onClose();
+      }
     }
   };
 
@@ -163,7 +170,10 @@ export const ConversationHistory = ({
 
   const handleSelect = (id: string) => {
     onSelectConversation(id);
-    onClose();
+    // Solo cerrar en móvil
+    if (isMobile && onClose) {
+      onClose();
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -194,17 +204,15 @@ export const ConversationHistory = ({
       displayConversations={displayConversations}
       onDelete={handleDelete}
       onEdit={handleEdit}
+      isMobile={isMobile}
     />
   );
 
   // En desktop, siempre mostrar (usar clase CSS para responsive)
-  // Si isOpen es true o estamos en desktop, mostrar siempre
-  const shouldShowDesktop = isOpen || true; // En desktop siempre visible
-
-  if (shouldShowDesktop && !onClose) {
-    // Desktop: siempre visible, sin overlay
+  if (!isMobile) {
+    // Desktop: siempre visible, sin overlay, no se puede cerrar
     return (
-      <div className="h-full w-full flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
+      <div className="h-full w-full flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-sm">
         {sidebarContent}
       </div>
     );
