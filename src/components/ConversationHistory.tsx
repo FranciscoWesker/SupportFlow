@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Search, History } from 'lucide-react';
 import { ConversationItem } from './ConversationItem';
@@ -140,10 +140,19 @@ export const ConversationHistory = ({
     removeConversation,
     updateConversationTitle,
     search,
+    loadConversations,
   } = useConversations();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Conversation[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Recargar conversaciones cuando cambia el currentConversationId para actualizar el contexto
+  useEffect(() => {
+    if (currentConversationId) {
+      // Recargar conversaciones para actualizar lastMessageAt y messageCount
+      loadConversations();
+    }
+  }, [currentConversationId, loadConversations]);
 
   const handleNewConversation = async () => {
     const newConv = await createNewConversation();

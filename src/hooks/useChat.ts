@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Message } from '@/types';
 import { sendMessage as sendMessageToApi } from '@/services/api.service';
 import { saveMessage, getConversation } from '@/services/conversation.service';
+import { useConversations } from './useConversations';
 
 interface UseChatOptions {
   conversationId?: string | null;
@@ -9,6 +10,7 @@ interface UseChatOptions {
 
 export const useChat = (options: UseChatOptions = {}) => {
   const { conversationId } = options;
+  const { loadConversations } = useConversations();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -141,6 +143,8 @@ export const useChat = (options: UseChatOptions = {}) => {
                     : msg
                 )
               );
+              // Actualizar el historial de conversaciones para reflejar el nuevo mensaje
+              loadConversations();
             }
           } catch (error) {
             console.error('Error al guardar mensaje del usuario:', error);
@@ -177,6 +181,8 @@ export const useChat = (options: UseChatOptions = {}) => {
                     : msg
                 )
               );
+              // Actualizar el historial de conversaciones para reflejar el nuevo mensaje
+              loadConversations();
             }
           } catch (error) {
             console.error('Error al guardar mensaje del bot:', error);
@@ -203,7 +209,7 @@ export const useChat = (options: UseChatOptions = {}) => {
         sendingRef.current = false;
       }
     },
-    [messages, isLoading, conversationId]
+    [messages, isLoading, conversationId, loadConversations]
   );
 
   const clearMessages = useCallback(() => {
