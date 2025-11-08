@@ -60,6 +60,8 @@ const helmetOptions = isProduction
             "'self'",
             'https://supportflow-yorh.onrender.com',
             (req) => `'nonce-${req.nonce}'`, // Nonce dinámico por request
+            "'sha256-wJouey+pdwXJr+iQSY4fYg7eS9KWjP73QhCAqPnw2Pk='", // Hash para script inline de Vite
+            "'sha256-ZswfTY7H35rbv8WC7NXBoiC7WNu86vSzCDChNWwZZDM='", // Hash para script inline de Vite
           ],
           styleSrc: ["'self'", "'unsafe-inline'"], // Vite genera estilos inline
           imgSrc: ["'self'", 'data:', 'https://supportflow-yorh.onrender.com'],
@@ -829,10 +831,14 @@ app.get('*', (req, res) => {
         /<script(?![^>]*\snonce=)([^>]*)>/gi,
         (match, attributes) => {
           // Si el script ya tiene nonce, no hacer nada
-          if (attributes.includes('nonce=')) {
+          if (attributes && attributes.includes('nonce=')) {
             return match;
           }
           // Agregar nonce al inicio de los atributos
+          // Si no hay atributos, solo agregar el nonce
+          if (!attributes || attributes.trim() === '') {
+            return `<script nonce="${req.nonce}">`;
+          }
           return `<script nonce="${req.nonce}"${attributes}>`;
         }
       );
