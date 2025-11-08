@@ -58,4 +58,3 @@ export const QuickSuggestions = ({
     </motion.div>
   );
 };
-

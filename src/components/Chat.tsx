@@ -73,10 +73,7 @@ export const Chat = ({ conversationId }: ChatProps) => {
             />
           ))}
           {showSuggestions && (
-            <QuickSuggestions
-              onSelect={sendMessage}
-              isLoading={isLoading}
-            />
+            <QuickSuggestions onSelect={sendMessage} isLoading={isLoading} />
           )}
           <div ref={messagesEndRef} />
         </div>
