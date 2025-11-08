@@ -14,11 +14,6 @@ export const useConversations = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar conversaciones al montar
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
   const loadConversations = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -32,6 +27,11 @@ export const useConversations = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Cargar conversaciones al montar
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
 
   const createNewConversation = useCallback(async (title?: string) => {
     setIsLoading(true);

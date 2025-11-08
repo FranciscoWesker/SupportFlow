@@ -10,6 +10,7 @@ import { connectMongoDB, disconnectMongoDB } from './db/mongodb.mjs';
 import Conversation from './models/Conversation.mjs';
 import Message from './models/Message.mjs';
 import { decrypt } from './utils/encryption.mjs';
+import mongoose from 'mongoose';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -197,7 +198,17 @@ app.get('/api/conversations/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const conversation = await Conversation.findById(id).lean();
+    // Validar ObjectId para prevenir inyección NoSQL
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de conversación inválido',
+      });
+    }
+    
+    // Convertir a ObjectId válido para la consulta
+    const objectId = new mongoose.Types.ObjectId(id);
+    const conversation = await Conversation.findById(objectId).lean();
     if (!conversation) {
       return res.status(404).json({
         success: false,
@@ -205,7 +216,7 @@ app.get('/api/conversations/:id', async (req, res) => {
       });
     }
 
-    const messages = await Message.find({ conversationId: id })
+    const messages = await Message.find({ conversationId: objectId })
       .sort({ timestamp: 1 })
       .lean();
 
@@ -266,6 +277,14 @@ app.put('/api/conversations/:id', async (req, res) => {
     const { id } = req.params;
     const { title } = req.body;
 
+    // Validar ObjectId para prevenir inyección NoSQL
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de conversación inválido',
+      });
+    }
+
     if (!title || typeof title !== 'string') {
       return res.status(400).json({
         success: false,
@@ -273,7 +292,9 @@ app.put('/api/conversations/:id', async (req, res) => {
       });
     }
 
-    const conversation = await Conversation.findById(id);
+    // Convertir a ObjectId válido para la consulta
+    const objectId = new mongoose.Types.ObjectId(id);
+    const conversation = await Conversation.findById(objectId);
     if (!conversation) {
       return res.status(404).json({
         success: false,
@@ -307,11 +328,22 @@ app.delete('/api/conversations/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Validar ObjectId para prevenir inyección NoSQL
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de conversación inválido',
+      });
+    }
+
+    // Convertir a ObjectId válido para la consulta
+    const objectId = new mongoose.Types.ObjectId(id);
+
     // Eliminar mensajes asociados
-    await Message.deleteMany({ conversationId: id });
+    await Message.deleteMany({ conversationId: objectId });
     
     // Eliminar conversación
-    const conversation = await Conversation.findByIdAndDelete(id);
+    const conversation = await Conversation.findByIdAndDelete(objectId);
     
     if (!conversation) {
       return res.status(404).json({
@@ -339,6 +371,14 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
     const { id } = req.params;
     const { content, sender } = req.body;
 
+    // Validar ObjectId para prevenir inyección NoSQL
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de conversación inválido',
+      });
+    }
+
     if (!content || !sender || !['user', 'bot'].includes(sender)) {
       return res.status(400).json({
         success: false,
@@ -346,7 +386,9 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       });
     }
 
-    const conversation = await Conversation.findById(id);
+    // Convertir a ObjectId válido para la consulta
+    const objectId = new mongoose.Types.ObjectId(id);
+    const conversation = await Conversation.findById(objectId);
     if (!conversation) {
       return res.status(404).json({
         success: false,
@@ -355,7 +397,7 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
     }
 
     const message = new Message({
-      conversationId: id,
+      conversationId: objectId,
       content: sanitize(content),
       sender,
       timestamp: new Date(),
@@ -392,6 +434,14 @@ app.put('/api/messages/:id/feedback', async (req, res) => {
     const { id } = req.params;
     const { feedback } = req.body;
 
+    // Validar ObjectId para prevenir inyección NoSQL
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de mensaje inválido',
+      });
+    }
+
     if (feedback && !['up', 'down'].includes(feedback)) {
       return res.status(400).json({
         success: false,
@@ -399,8 +449,10 @@ app.put('/api/messages/:id/feedback', async (req, res) => {
       });
     }
 
+    // Convertir a ObjectId válido para la consulta
+    const objectId = new mongoose.Types.ObjectId(id);
     const message = await Message.findByIdAndUpdate(
-      id,
+      objectId,
       { feedback: feedback || null },
       { new: true }
     );
@@ -449,11 +501,24 @@ app.get('/api/conversations/search', async (req, res) => {
       return decryptedContent.toLowerCase().includes(q.toLowerCase());
     });
 
-    // Obtener IDs únicos de conversaciones
-    const conversationIds = [...new Set(matchingMessages.map(msg => msg.conversationId.toString()))];
+    // Obtener IDs únicos de conversaciones y validarlos
+    const conversationIds = [...new Set(matchingMessages.map(msg => msg.conversationId?.toString()).filter(Boolean))];
+    
+    // Validar y convertir todos los IDs a ObjectId para prevenir inyección NoSQL
+    const validObjectIds = conversationIds
+      .filter(id => isValidObjectId(id))
+      .map(id => new mongoose.Types.ObjectId(id));
+    
+    if (validObjectIds.length === 0) {
+      return res.json({
+        success: true,
+        conversations: [],
+        count: 0,
+      });
+    }
     
     const conversations = await Conversation.find({
-      _id: { $in: conversationIds },
+      _id: { $in: validObjectIds },
     }).lean();
 
     const decryptedConversations = Conversation.decryptConversations(conversations);
@@ -476,6 +541,16 @@ app.get('/api/conversations/search', async (req, res) => {
 
 // Función de sanitización
 const sanitize = (s) => String(s || '').trim().replace(/[<>]/g, '');
+
+// Función de validación de ObjectId de MongoDB
+// Previene inyección NoSQL validando que el ID sea un ObjectId válido
+const isValidObjectId = (id) => {
+  if (!id || typeof id !== 'string') {
+    return false;
+  }
+  // Validar que sea un ObjectId válido de MongoDB (24 caracteres hexadecimales)
+  return mongoose.Types.ObjectId.isValid(id) && id.length === 24;
+};
 
 // ============================================
 // ENDPOINT PRINCIPAL DE CHAT

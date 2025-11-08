@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, Edit2, MessageSquare } from 'lucide-react';
 import type { Conversation } from '@/types';
@@ -19,14 +20,14 @@ export const ConversationItem = ({
   onDelete,
   onEdit,
 }: ConversationItemProps) => {
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = (e: MouseEvent) => {
     e.stopPropagation();
     if (window.confirm('¿Estás seguro de que quieres eliminar esta conversación?')) {
       onDelete(conversation._id);
     }
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
+  const handleEdit = (e: MouseEvent) => {
     e.stopPropagation();
     if (onEdit) {
       const newTitle = window.prompt('Nuevo título:', conversation.title);

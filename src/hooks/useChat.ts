@@ -30,7 +30,7 @@ export const useChat = (options: UseChatOptions = {}) => {
           const data = await getConversation(conversationId);
           if (data && data.messages.length > 0) {
             // Convertir mensajes de MongoDB al formato del frontend
-            const formattedMessages: Message[] = data.messages.map((msg: any) => ({
+            const formattedMessages: Message[] = data.messages.map((msg: Message) => ({
               id: msg._id || msg.id || Date.now().toString(),
               _id: msg._id,
               content: msg.content,
@@ -49,15 +49,6 @@ export const useChat = (options: UseChatOptions = {}) => {
     }
   }, [conversationId]);
 
-  const addMessage = useCallback((content: string, sender: 'user' | 'bot') => {
-    const newMessage: Message = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      content,
-      sender,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, newMessage]);
-  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -167,7 +158,7 @@ export const useChat = (options: UseChatOptions = {}) => {
         sendingRef.current = false;
       }
     },
-    [messages, addMessage, isLoading, conversationId]
+    [messages, isLoading, conversationId]
   );
 
   const clearMessages = useCallback(() => {

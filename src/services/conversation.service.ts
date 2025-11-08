@@ -1,5 +1,5 @@
 import { AxiosError } from 'axios';
-import type { Conversation, ConversationResponse, MessageResponse, SearchResponse } from '@/types';
+import type { Conversation, ConversationResponse, MessageResponse, SearchResponse, Message } from '@/types';
 import { createAxiosInstance } from './axios.config';
 import logger from '@/utils/logger';
 
@@ -30,10 +30,10 @@ export const getConversations = async (): Promise<Conversation[]> => {
 /**
  * Obtener una conversación con sus mensajes
  */
-export const getConversation = async (id: string): Promise<{ conversation: Conversation; messages: any[] } | null> => {
+export const getConversation = async (id: string): Promise<{ conversation: Conversation; messages: Message[] } | null> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.get<ConversationResponse & { messages: any[] }>(`/api/conversations/${id}`);
+    const response = await axiosInstance.get<ConversationResponse & { messages: Message[] }>(`/api/conversations/${id}`);
     
     if (response.data?.success && response.data.conversation) {
       return {
@@ -117,7 +117,7 @@ export const saveMessage = async (
   conversationId: string,
   content: string,
   sender: 'user' | 'bot'
-): Promise<any | null> => {
+): Promise<Message | null> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
     const response = await axiosInstance.post<MessageResponse>(`/api/conversations/${conversationId}/messages`, {
@@ -143,7 +143,7 @@ export const saveMessage = async (
 export const updateMessageFeedback = async (
   messageId: string,
   feedback: 'up' | 'down' | null
-): Promise<any | null> => {
+): Promise<Message | null> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
     const response = await axiosInstance.put<MessageResponse>(`/api/messages/${messageId}/feedback`, {

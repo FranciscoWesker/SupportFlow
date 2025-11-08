@@ -3,12 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Search, History } from 'lucide-react';
 import { ConversationItem } from './ConversationItem';
 import { useConversations } from '@/hooks/useConversations';
+import type { Conversation } from '@/types';
 
 interface ConversationHistoryProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectConversation: (id: string | null) => void;
   currentConversationId: string | null;
+}
+
+interface SidebarContentProps {
+  onClose?: () => void;
+  onSelectConversation: (id: string) => void;
+  currentConversationId: string | null;
+  searchQuery: string;
+  onSearch: (query: string) => void;
+  onNewConversation: () => void;
+  isLoading: boolean;
+  isSearching: boolean;
+  displayConversations: Conversation[];
+  onDelete: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
 }
 
 const SidebarContent = ({
@@ -23,7 +38,7 @@ const SidebarContent = ({
   displayConversations,
   onDelete,
   onEdit,
-}: any) => {
+}: SidebarContentProps) => {
   return (
     <>
       {/* Header */}
@@ -89,7 +104,7 @@ const SidebarContent = ({
           </div>
         ) : (
           <div className="space-y-2">
-            {displayConversations.map((conversation: any) => (
+            {displayConversations.map((conversation) => (
               <ConversationItem
                 key={conversation._id}
                 conversation={conversation}
@@ -121,7 +136,7 @@ export const ConversationHistory = ({
     search,
   } = useConversations();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Conversation[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   const handleNewConversation = async () => {
