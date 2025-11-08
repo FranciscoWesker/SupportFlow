@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
+import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 import logger from './logger.mjs';
 import { connectMongoDB, disconnectMongoDB, isMongoDBConnected } from './db/mongodb.mjs';
@@ -33,23 +35,33 @@ app.set('trust proxy', 1);
 // ============================================
 // MIDDLEWARES GLOBALES
 // ============================================
-// Helmet: configuración de seguridad con CSP apropiada para desarrollo y producción.
+// Función para generar nonce único por request
+const generateNonce = () => {
+  return crypto.randomBytes(16).toString('base64');
+};
+
+// Middleware para generar nonce y agregarlo al request
+app.use((req, res, next) => {
+  req.nonce = generateNonce();
+  next();
+});
+
+// Helmet: configuración de seguridad con CSP usando nonces
 // En desarrollo, usamos una CSP más permisiva para facilitar el desarrollo (hot-reload, etc.)
 // pero mantenemos las protecciones básicas activas.
 // Si tu app consulta APIs externas (Sentry, CDNs, websockets, HuggingFace, etc.) añade sus orígenes a connectSrc/scriptSrc/imgSrc.
 const helmetOptions = isProduction
   ? {
       contentSecurityPolicy: {
+        useDefaults: false,
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: [
             "'self'",
             'https://supportflow-yorh.onrender.com',
-            "'sha256-wJouey+pdwXJr+iQSY4fYg7eS9KWjP73QhCAqPnw2Pk='",
-            "'sha256-ZswfTY7H35rbv8WC7NXBoiC7WNu86vSzCDChNWwZZDM='",
+            (req, res) => `'nonce-${req.nonce}'`, // Nonce dinámico por request
           ],
-          // Evitamos 'unsafe-inline' en style-src para mayor seguridad. Si detectas problemas, añade nonces o hashes.
-          styleSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"], // Vite genera estilos inline
           imgSrc: ["'self'", 'data:', 'https://supportflow-yorh.onrender.com'],
           // Añade dominios externos aquí según sea necesario (ej: HuggingFace inference API)
           connectSrc: ["'self'", 'https://api-inference.huggingface.co', 'https://supportflow-yorh.onrender.com'],
@@ -804,13 +816,42 @@ app.get('*', (req, res) => {
     });
   }
   
-  // Servir index.html para todas las demás rutas (SPA)
-  res.sendFile(path.join(distDir, 'index.html'), (err) => {
-    if (err) {
-      logger.error({ event: 'spa_sendfile_error', error: err?.message || err });
+  // En producción, inyectar nonce en scripts inline del HTML
+  if (isProduction) {
+    try {
+      const indexPath = path.join(distDir, 'index.html');
+      let html = readFileSync(indexPath, 'utf8');
+      
+      // Inyectar nonce en todos los scripts que no lo tengan ya
+      // Reemplazar <script> con <script nonce="...">
+      // Esta regex captura todos los scripts (incluyendo type="module") y agrega el nonce
+      html = html.replace(
+        /<script(?![^>]*\snonce=)([^>]*)>/gi,
+        (match, attributes) => {
+          // Si el script ya tiene nonce, no hacer nada
+          if (attributes.includes('nonce=')) {
+            return match;
+          }
+          // Agregar nonce al inicio de los atributos
+          return `<script nonce="${req.nonce}"${attributes}>`;
+        }
+      );
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (err) {
+      logger.error({ event: 'spa_html_error', error: err?.message || err });
       res.status(500).send('Error al cargar la aplicación');
     }
-  });
+  } else {
+    // En desarrollo, servir normalmente
+    res.sendFile(path.join(distDir, 'index.html'), (err) => {
+      if (err) {
+        logger.error({ event: 'spa_sendfile_error', error: err?.message || err });
+        res.status(500).send('Error al cargar la aplicación');
+      }
+    });
+  }
 });
 
 // ============================================
