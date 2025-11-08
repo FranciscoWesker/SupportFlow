@@ -30,15 +30,17 @@ export const useChat = (options: UseChatOptions = {}) => {
           const data = await getConversation(conversationId);
           if (data && data.messages.length > 0) {
             // Convertir mensajes de MongoDB al formato del frontend
-            const formattedMessages: Message[] = data.messages.map((msg: Message) => ({
-              id: msg._id || msg.id || Date.now().toString(),
-              _id: msg._id,
-              content: msg.content,
-              sender: msg.sender,
-              timestamp: new Date(msg.timestamp),
-              feedback: msg.feedback || null,
-              conversationId: msg.conversationId,
-            }));
+            const formattedMessages: Message[] = data.messages.map(
+              (msg: Message) => ({
+                id: msg._id || msg.id || Date.now().toString(),
+                _id: msg._id,
+                content: msg.content,
+                sender: msg.sender,
+                timestamp: new Date(msg.timestamp),
+                feedback: msg.feedback || null,
+                conversationId: msg.conversationId,
+              })
+            );
             setMessages(formattedMessages);
           }
         } catch (error) {
@@ -48,7 +50,6 @@ export const useChat = (options: UseChatOptions = {}) => {
       loadConversation();
     }
   }, [conversationId]);
-
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -94,12 +95,18 @@ export const useChat = (options: UseChatOptions = {}) => {
         // Guardar mensaje del usuario en MongoDB si hay conversationId (solo una vez)
         if (conversationId) {
           try {
-            const savedMessage = await saveMessage(conversationId, content, 'user');
+            const savedMessage = await saveMessage(
+              conversationId,
+              content,
+              'user'
+            );
             if (savedMessage && savedMessage._id) {
               // Actualizar el mensaje con el ID de MongoDB
               setMessages(prev =>
                 prev.map(msg =>
-                  msg.id === userMessage.id ? { ...msg, _id: savedMessage._id } : msg
+                  msg.id === userMessage.id
+                    ? { ...msg, _id: savedMessage._id }
+                    : msg
                 )
               );
             }
@@ -124,12 +131,18 @@ export const useChat = (options: UseChatOptions = {}) => {
         // Guardar mensaje del bot en MongoDB si hay conversationId
         if (conversationId) {
           try {
-            const savedMessage = await saveMessage(conversationId, response.message, 'bot');
+            const savedMessage = await saveMessage(
+              conversationId,
+              response.message,
+              'bot'
+            );
             if (savedMessage && savedMessage._id) {
               // Actualizar el mensaje con el ID de MongoDB
               setMessages(prev =>
                 prev.map(msg =>
-                  msg.id === botMessage.id ? { ...msg, _id: savedMessage._id } : msg
+                  msg.id === botMessage.id
+                    ? { ...msg, _id: savedMessage._id }
+                    : msg
                 )
               );
             }

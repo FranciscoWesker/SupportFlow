@@ -12,7 +12,9 @@ interface ChatProps {
 }
 
 export const Chat = ({ conversationId }: ChatProps) => {
-  const { messages, isLoading, sendMessage, clearMessages } = useChat({ conversationId });
+  const { messages, isLoading, sendMessage, clearMessages } = useChat({
+    conversationId,
+  });
   const { currentConversation } = useConversations();
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);

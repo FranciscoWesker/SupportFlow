@@ -22,7 +22,9 @@ export const ConversationItem = ({
 }: ConversationItemProps) => {
   const handleDelete = (e: MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta conversación?')) {
+    if (
+      window.confirm('¿Estás seguro de que quieres eliminar esta conversación?')
+    ) {
       onDelete(conversation._id);
     }
   };
@@ -55,9 +57,10 @@ export const ConversationItem = ({
       onClick={() => onSelect(conversation._id)}
       className={`
         relative p-3 rounded-lg cursor-pointer transition-colors
-        ${isActive
-          ? 'bg-primary-500 text-white'
-          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+        ${
+          isActive
+            ? 'bg-primary-500 text-white'
+            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
         }
       `}
     >
@@ -65,14 +68,21 @@ export const ConversationItem = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="w-4 h-4 flex-shrink-0" />
-            <h3 className="font-medium text-sm truncate">{conversation.title}</h3>
+            <h3 className="font-medium text-sm truncate">
+              {conversation.title}
+            </h3>
           </div>
-          <div className={`text-xs ${isActive ? 'text-primary-100' : 'text-gray-500 dark:text-gray-400'}`}>
+          <div
+            className={`text-xs ${isActive ? 'text-primary-100' : 'text-gray-500 dark:text-gray-400'}`}
+          >
             {formatDate(conversation.lastMessageAt)}
           </div>
           {conversation.messageCount > 0 && (
-            <div className={`text-xs mt-1 ${isActive ? 'text-primary-100' : 'text-gray-500 dark:text-gray-400'}`}>
-              {conversation.messageCount} mensaje{conversation.messageCount !== 1 ? 's' : ''}
+            <div
+              className={`text-xs mt-1 ${isActive ? 'text-primary-100' : 'text-gray-500 dark:text-gray-400'}`}
+            >
+              {conversation.messageCount} mensaje
+              {conversation.messageCount !== 1 ? 's' : ''}
             </div>
           )}
         </div>
@@ -102,4 +112,3 @@ export const ConversationItem = ({
     </motion.div>
   );
 };
-

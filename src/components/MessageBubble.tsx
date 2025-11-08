@@ -6,12 +6,20 @@ import { MessageFeedback } from './MessageFeedback';
 
 interface MessageBubbleProps {
   message: Message;
-  onFeedbackChange?: (messageId: string, feedback: 'up' | 'down' | null) => void;
+  onFeedbackChange?: (
+    messageId: string,
+    feedback: 'up' | 'down' | null
+  ) => void;
 }
 
-export const MessageBubble = ({ message, onFeedbackChange }: MessageBubbleProps) => {
+export const MessageBubble = ({
+  message,
+  onFeedbackChange,
+}: MessageBubbleProps) => {
   const [copied, setCopied] = useState(false);
-  const [feedback, setFeedback] = useState<'up' | 'down' | null>(message.feedback || null);
+  const [feedback, setFeedback] = useState<'up' | 'down' | null>(
+    message.feedback || null
+  );
   const isUser = message.sender === 'user';
 
   const handleFeedbackChange = (newFeedback: 'up' | 'down' | null) => {

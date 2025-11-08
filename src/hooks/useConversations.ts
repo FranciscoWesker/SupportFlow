@@ -10,7 +10,9 @@ import {
 
 export const useConversations = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<
+    string | null
+  >(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,74 +55,85 @@ export const useConversations = () => {
     }
   }, []);
 
-  const removeConversation = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const success = await deleteConversation(id);
-      if (success) {
-        setConversations(prev => prev.filter(conv => conv._id !== id));
-        if (currentConversationId === id) {
-          setCurrentConversationId(null);
+  const removeConversation = useCallback(
+    async (id: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const success = await deleteConversation(id);
+        if (success) {
+          setConversations(prev => prev.filter(conv => conv._id !== id));
+          if (currentConversationId === id) {
+            setCurrentConversationId(null);
+          }
+          return true;
         }
-        return true;
+        return false;
+      } catch (err) {
+        setError('Error al eliminar conversación');
+        console.error('Error al eliminar conversación:', err);
+        return false;
+      } finally {
+        setIsLoading(false);
       }
-      return false;
-    } catch (err) {
-      setError('Error al eliminar conversación');
-      console.error('Error al eliminar conversación:', err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentConversationId]);
+    },
+    [currentConversationId]
+  );
 
-  const updateConversationTitle = useCallback(async (id: string, title: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const updated = await updateConversation(id, title);
-      if (updated) {
-        setConversations(prev =>
-          prev.map(conv => (conv._id === id ? updated : conv))
-        );
-        return updated;
+  const updateConversationTitle = useCallback(
+    async (id: string, title: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const updated = await updateConversation(id, title);
+        if (updated) {
+          setConversations(prev =>
+            prev.map(conv => (conv._id === id ? updated : conv))
+          );
+          return updated;
+        }
+        return null;
+      } catch (err) {
+        setError('Error al actualizar conversación');
+        console.error('Error al actualizar conversación:', err);
+        return null;
+      } finally {
+        setIsLoading(false);
       }
-      return null;
-    } catch (err) {
-      setError('Error al actualizar conversación');
-      console.error('Error al actualizar conversación:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
-  const search = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      await loadConversations();
-      return [];
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const results = await searchConversations(query);
-      return results;
-    } catch (err) {
-      setError('Error en búsqueda');
-      console.error('Error en búsqueda:', err);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  }, [loadConversations]);
+  const search = useCallback(
+    async (query: string) => {
+      if (!query.trim()) {
+        await loadConversations();
+        return [];
+      }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const results = await searchConversations(query);
+        return results;
+      } catch (err) {
+        setError('Error en búsqueda');
+        console.error('Error en búsqueda:', err);
+        return [];
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [loadConversations]
+  );
 
   const selectConversation = useCallback((id: string | null) => {
     setCurrentConversationId(id);
   }, []);
 
   const getCurrentConversation = useCallback(() => {
-    return conversations.find(conv => conv._id === currentConversationId) || null;
+    return (
+      conversations.find(conv => conv._id === currentConversationId) || null
+    );
   }, [conversations, currentConversationId]);
 
   return {
@@ -137,4 +150,3 @@ export const useConversations = () => {
     selectConversation,
   };
 };
-

@@ -70,7 +70,7 @@ const SidebarContent = ({
             type="text"
             placeholder="Buscar conversaciones..."
             value={searchQuery}
-            onChange={(e) => onSearch(e.target.value)}
+            onChange={e => onSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
@@ -100,11 +100,13 @@ const SidebarContent = ({
           </div>
         ) : displayConversations.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-            {searchQuery.trim() ? 'No se encontraron conversaciones' : 'No hay conversaciones'}
+            {searchQuery.trim()
+              ? 'No se encontraron conversaciones'
+              : 'No hay conversaciones'}
           </div>
         ) : (
           <div className="space-y-2">
-            {displayConversations.map((conversation) => (
+            {displayConversations.map(conversation => (
               <ConversationItem
                 key={conversation._id}
                 conversation={conversation}
@@ -175,7 +177,9 @@ export const ConversationHistory = ({
     await updateConversationTitle(id, title);
   };
 
-  const displayConversations = searchQuery.trim() ? searchResults : conversations;
+  const displayConversations = searchQuery.trim()
+    ? searchResults
+    : conversations;
 
   const sidebarContent = (
     <SidebarContent
@@ -196,7 +200,7 @@ export const ConversationHistory = ({
   // En desktop, siempre mostrar (usar clase CSS para responsive)
   // Si isOpen es true o estamos en desktop, mostrar siempre
   const shouldShowDesktop = isOpen || true; // En desktop siempre visible
-  
+
   if (shouldShowDesktop && !onClose) {
     // Desktop: siempre visible, sin overlay
     return (
@@ -219,7 +223,7 @@ export const ConversationHistory = ({
             onClick={onClose}
             className="fixed inset-0 bg-black/50 z-40"
           />
-          
+
           {/* Sidebar */}
           <motion.div
             initial={{ x: '-100%' }}

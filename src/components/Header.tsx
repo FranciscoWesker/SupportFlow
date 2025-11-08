@@ -55,7 +55,9 @@ export const Header = () => {
               ) : (
                 <WifiOff className="w-4 h-4" />
               )}
-              <span className="hidden sm:inline">{isOnline ? 'En línea' : 'Sin conexión'}</span>
+              <span className="hidden sm:inline">
+                {isOnline ? 'En línea' : 'Sin conexión'}
+              </span>
             </div>
             <motion.button
               whileHover={{ scale: 1.1 }}

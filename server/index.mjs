@@ -442,18 +442,32 @@ app.put('/api/messages/:id/feedback', async (req, res) => {
       });
     }
 
-    if (feedback && !['up', 'down'].includes(feedback)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Feedback inválido',
-      });
+    // Validar que feedback sea un valor literal (string o null/undefined)
+    // Previene inyección NoSQL asegurando que no sea un objeto con operadores
+    let validFeedback = null;
+    if (feedback !== undefined && feedback !== null) {
+      // Asegurar que feedback sea un string literal, no un objeto
+      if (typeof feedback !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'Feedback debe ser un string o null',
+        });
+      }
+      // Validar que solo sea 'up' o 'down'
+      if (!['up', 'down'].includes(feedback)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Feedback inválido. Debe ser "up" o "down"',
+        });
+      }
+      validFeedback = feedback;
     }
 
     // Convertir a ObjectId válido para la consulta
     const objectId = new mongoose.Types.ObjectId(id);
     const message = await Message.findByIdAndUpdate(
       objectId,
-      { feedback: feedback || null },
+      { feedback: validFeedback },
       { new: true }
     );
 

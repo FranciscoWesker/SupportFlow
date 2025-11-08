@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, FileText, Code, FileCode } from 'lucide-react';
-import { exportToTXT, exportToJSON, exportToMarkdown, downloadFile } from '@/services/export.service';
+import {
+  exportToTXT,
+  exportToJSON,
+  exportToMarkdown,
+  downloadFile,
+} from '@/services/export.service';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -17,7 +22,9 @@ export const ExportDialog = ({
   conversationTitle,
 }: ExportDialogProps) => {
   const [isExporting, setIsExporting] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'txt' | 'json' | 'markdown'>('txt');
+  const [exportFormat, setExportFormat] = useState<'txt' | 'json' | 'markdown'>(
+    'txt'
+  );
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -68,7 +75,7 @@ export const ExportDialog = ({
             onClick={onClose}
             className="fixed inset-0 bg-black/50 z-50"
           />
-          
+
           {/* Dialog */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -78,7 +85,7 @@ export const ExportDialog = ({
           >
             <div
               className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -110,7 +117,9 @@ export const ExportDialog = ({
                     className="w-4 h-4 text-primary-500"
                   />
                   <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  <span className="flex-1 text-gray-900 dark:text-white">Texto plano (TXT)</span>
+                  <span className="flex-1 text-gray-900 dark:text-white">
+                    Texto plano (TXT)
+                  </span>
                 </label>
 
                 <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -123,7 +132,9 @@ export const ExportDialog = ({
                     className="w-4 h-4 text-primary-500"
                   />
                   <Code className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  <span className="flex-1 text-gray-900 dark:text-white">JSON</span>
+                  <span className="flex-1 text-gray-900 dark:text-white">
+                    JSON
+                  </span>
                 </label>
 
                 <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -136,7 +147,9 @@ export const ExportDialog = ({
                     className="w-4 h-4 text-primary-500"
                   />
                   <FileCode className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  <span className="flex-1 text-gray-900 dark:text-white">Markdown</span>
+                  <span className="flex-1 text-gray-900 dark:text-white">
+                    Markdown
+                  </span>
                 </label>
               </div>
 
@@ -176,4 +189,3 @@ export const ExportDialog = ({
     </AnimatePresence>
   );
 };
-

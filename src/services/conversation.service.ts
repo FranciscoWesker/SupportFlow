@@ -1,5 +1,11 @@
 import { AxiosError } from 'axios';
-import type { Conversation, ConversationResponse, MessageResponse, SearchResponse, Message } from '@/types';
+import type {
+  Conversation,
+  ConversationResponse,
+  MessageResponse,
+  SearchResponse,
+  Message,
+} from '@/types';
 import { createAxiosInstance } from './axios.config';
 import logger from '@/utils/logger';
 
@@ -13,12 +19,13 @@ const getBaseURL = () => {
 export const getConversations = async (): Promise<Conversation[]> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.get<ConversationResponse>('/api/conversations');
-    
+    const response =
+      await axiosInstance.get<ConversationResponse>('/api/conversations');
+
     if (response.data?.success && response.data.conversations) {
       return response.data.conversations;
     }
-    
+
     return [];
   } catch (error) {
     const axiosError = error as AxiosError<ConversationResponse>;
@@ -30,18 +37,22 @@ export const getConversations = async (): Promise<Conversation[]> => {
 /**
  * Obtener una conversación con sus mensajes
  */
-export const getConversation = async (id: string): Promise<{ conversation: Conversation; messages: Message[] } | null> => {
+export const getConversation = async (
+  id: string
+): Promise<{ conversation: Conversation; messages: Message[] } | null> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.get<ConversationResponse & { messages: Message[] }>(`/api/conversations/${id}`);
-    
+    const response = await axiosInstance.get<
+      ConversationResponse & { messages: Message[] }
+    >(`/api/conversations/${id}`);
+
     if (response.data?.success && response.data.conversation) {
       return {
         conversation: response.data.conversation,
         messages: response.data.messages || [],
       };
     }
-    
+
     return null;
   } catch (error) {
     const axiosError = error as AxiosError<ConversationResponse>;
@@ -53,17 +64,22 @@ export const getConversation = async (id: string): Promise<{ conversation: Conve
 /**
  * Crear una nueva conversación
  */
-export const createConversation = async (title?: string): Promise<Conversation | null> => {
+export const createConversation = async (
+  title?: string
+): Promise<Conversation | null> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.post<ConversationResponse>('/api/conversations', {
-      title: title || 'Nueva conversación',
-    });
-    
+    const response = await axiosInstance.post<ConversationResponse>(
+      '/api/conversations',
+      {
+        title: title || 'Nueva conversación',
+      }
+    );
+
     if (response.data?.success && response.data.conversation) {
       return response.data.conversation;
     }
-    
+
     return null;
   } catch (error) {
     const axiosError = error as AxiosError<ConversationResponse>;
@@ -75,17 +91,23 @@ export const createConversation = async (title?: string): Promise<Conversation |
 /**
  * Actualizar título de conversación
  */
-export const updateConversation = async (id: string, title: string): Promise<Conversation | null> => {
+export const updateConversation = async (
+  id: string,
+  title: string
+): Promise<Conversation | null> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.put<ConversationResponse>(`/api/conversations/${id}`, {
-      title,
-    });
-    
+    const response = await axiosInstance.put<ConversationResponse>(
+      `/api/conversations/${id}`,
+      {
+        title,
+      }
+    );
+
     if (response.data?.success && response.data.conversation) {
       return response.data.conversation;
     }
-    
+
     return null;
   } catch (error) {
     const axiosError = error as AxiosError<ConversationResponse>;
@@ -100,11 +122,17 @@ export const updateConversation = async (id: string, title: string): Promise<Con
 export const deleteConversation = async (id: string): Promise<boolean> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.delete<{ success: boolean; error?: string }>(`/api/conversations/${id}`);
-    
+    const response = await axiosInstance.delete<{
+      success: boolean;
+      error?: string;
+    }>(`/api/conversations/${id}`);
+
     return response.data?.success || false;
   } catch (error) {
-    const axiosError = error as AxiosError<{ success: boolean; error?: string }>;
+    const axiosError = error as AxiosError<{
+      success: boolean;
+      error?: string;
+    }>;
     logger.error('Error al eliminar conversación:', axiosError.message);
     return false;
   }
@@ -120,15 +148,18 @@ export const saveMessage = async (
 ): Promise<Message | null> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.post<MessageResponse>(`/api/conversations/${conversationId}/messages`, {
-      content,
-      sender,
-    });
-    
+    const response = await axiosInstance.post<MessageResponse>(
+      `/api/conversations/${conversationId}/messages`,
+      {
+        content,
+        sender,
+      }
+    );
+
     if (response.data?.success && response.data.message) {
       return response.data.message;
     }
-    
+
     return null;
   } catch (error) {
     const axiosError = error as AxiosError<MessageResponse>;
@@ -146,14 +177,17 @@ export const updateMessageFeedback = async (
 ): Promise<Message | null> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.put<MessageResponse>(`/api/messages/${messageId}/feedback`, {
-      feedback,
-    });
-    
+    const response = await axiosInstance.put<MessageResponse>(
+      `/api/messages/${messageId}/feedback`,
+      {
+        feedback,
+      }
+    );
+
     if (response.data?.success && response.data.message) {
       return response.data.message;
     }
-    
+
     return null;
   } catch (error) {
     const axiosError = error as AxiosError<MessageResponse>;
@@ -165,17 +199,22 @@ export const updateMessageFeedback = async (
 /**
  * Buscar en conversaciones
  */
-export const searchConversations = async (query: string): Promise<Conversation[]> => {
+export const searchConversations = async (
+  query: string
+): Promise<Conversation[]> => {
   try {
     const axiosInstance = createAxiosInstance(getBaseURL());
-    const response = await axiosInstance.get<SearchResponse>('/api/conversations/search', {
-      params: { q: query },
-    });
-    
+    const response = await axiosInstance.get<SearchResponse>(
+      '/api/conversations/search',
+      {
+        params: { q: query },
+      }
+    );
+
     if (response.data?.success && response.data.conversations) {
       return response.data.conversations;
     }
-    
+
     return [];
   } catch (error) {
     const axiosError = error as AxiosError<SearchResponse>;
@@ -183,4 +222,3 @@ export const searchConversations = async (query: string): Promise<Conversation[]
     return [];
   }
 };
-

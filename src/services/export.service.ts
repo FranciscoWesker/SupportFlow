@@ -18,10 +18,11 @@ export const exportToTXT = async (conversationId: string): Promise<string> => {
 
   messages.forEach((message: Message, index: number) => {
     const sender = message.sender === 'user' ? 'Usuario' : 'SupportFlow';
-    const timestamp = typeof message.timestamp === 'string'
-      ? new Date(message.timestamp).toLocaleString('es-ES')
-      : message.timestamp.toLocaleString('es-ES');
-    
+    const timestamp =
+      typeof message.timestamp === 'string'
+        ? new Date(message.timestamp).toLocaleString('es-ES')
+        : message.timestamp.toLocaleString('es-ES');
+
     content += `[${index + 1}] ${sender} - ${timestamp}\n`;
     content += `${message.content}\n\n`;
   });
@@ -63,7 +64,9 @@ export const exportToJSON = async (conversationId: string): Promise<string> => {
 /**
  * Exporta una conversación en formato Markdown
  */
-export const exportToMarkdown = async (conversationId: string): Promise<string> => {
+export const exportToMarkdown = async (
+  conversationId: string
+): Promise<string> => {
   const data = await getConversation(conversationId);
   if (!data) {
     throw new Error('Conversación no encontrada');
@@ -76,11 +79,13 @@ export const exportToMarkdown = async (conversationId: string): Promise<string> 
   content += '---\n\n';
 
   messages.forEach((message: Message, index: number) => {
-    const sender = message.sender === 'user' ? '**Usuario**' : '**SupportFlow**';
-    const timestamp = typeof message.timestamp === 'string'
-      ? new Date(message.timestamp).toLocaleString('es-ES')
-      : message.timestamp.toLocaleString('es-ES');
-    
+    const sender =
+      message.sender === 'user' ? '**Usuario**' : '**SupportFlow**';
+    const timestamp =
+      typeof message.timestamp === 'string'
+        ? new Date(message.timestamp).toLocaleString('es-ES')
+        : message.timestamp.toLocaleString('es-ES');
+
     content += `## Mensaje ${index + 1}\n\n`;
     content += `${sender} - *${timestamp}*\n\n`;
     content += `${message.content}\n\n`;
@@ -93,7 +98,11 @@ export const exportToMarkdown = async (conversationId: string): Promise<string> 
 /**
  * Descarga un archivo con el contenido proporcionado
  */
-export const downloadFile = (content: string, filename: string, mimeType: string) => {
+export const downloadFile = (
+  content: string,
+  filename: string,
+  mimeType: string
+) => {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -104,4 +113,3 @@ export const downloadFile = (content: string, filename: string, mimeType: string
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
-
