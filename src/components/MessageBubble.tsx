@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { Message } from '@/types';
 import { User, Bot, Copy, Check } from 'lucide-react';
 import { MessageFeedback } from './MessageFeedback';
@@ -99,9 +101,73 @@ export const MessageBubble = ({
             : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
         }`}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">
-          {message.content}
-        </p>
+        <div
+          className={`text-sm prose prose-sm max-w-none break-words ${
+            isUser
+              ? 'prose-invert prose-headings:text-white prose-p:text-white prose-strong:text-white prose-ul:text-white prose-li:text-white prose-code:text-white prose-a:text-white'
+              : 'prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-900 dark:prose-p:text-gray-100 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-ul:text-gray-900 dark:prose-ul:text-gray-100 prose-li:text-gray-900 dark:prose-li:text-gray-100 prose-code:text-gray-900 dark:prose-code:text-gray-100 dark:prose-invert'
+          }`}
+        >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children }) => (
+                <h1 className="text-lg font-bold mb-2 mt-4 first:mt-0">
+                  {children}
+                </h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="text-base font-bold mb-2 mt-3 first:mt-0">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="text-sm font-bold mb-1.5 mt-2.5 first:mt-0">
+                  {children}
+                </h3>
+              ),
+              p: ({ children }) => (
+                <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+              ),
+              ul: ({ children }) => (
+                <ul className="list-disc list-inside mb-2 space-y-1">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-inside mb-2 space-y-1">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => (
+                <li className="ml-2 leading-relaxed">{children}</li>
+              ),
+              strong: ({ children }) => (
+                <strong className="font-semibold">{children}</strong>
+              ),
+              em: ({ children }) => <em className="italic">{children}</em>,
+              code: ({ children, className }) => {
+                const isInline = !className;
+                return isInline ? (
+                  <code className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-sm font-mono">
+                    {children}
+                  </code>
+                ) : (
+                  <code className="block p-2 rounded bg-gray-200 dark:bg-gray-700 text-sm font-mono overflow-x-auto">
+                    {children}
+                  </code>
+                );
+              },
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2">
+                  {children}
+                </blockquote>
+              ),
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        </div>
         <div className="flex items-center justify-between mt-2">
           <p
             className={`text-xs ${
