@@ -7,17 +7,27 @@ import { ExportDialog } from './ExportDialog';
 import { QuickSuggestions } from './QuickSuggestions';
 import { Trash2, Download } from 'lucide-react';
 import { useConversations } from '@/hooks/useConversations';
+import type { Message } from '@/types';
 
 interface ChatProps {
   conversationId?: string | null;
 }
 
 export const Chat = ({ conversationId }: ChatProps) => {
-  const { messages, isLoading, sendMessage, clearMessages } = useChat({
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    clearMessages,
+    editMessage,
+    deleteMessage,
+    regenerateMessage,
+  } = useChat({
     conversationId,
   });
   const { currentConversation } = useConversations();
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [quotedMessage, setQuotedMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -70,6 +80,25 @@ export const Chat = ({ conversationId }: ChatProps) => {
               onFeedbackChange={() => {
                 // El feedback ya se guarda en MongoDB a través del servicio MessageFeedback
               }}
+              onEdit={editMessage}
+              onDelete={deleteMessage}
+              onQuote={setQuotedMessage}
+              onRegenerate={regenerateMessage}
+              onShare={message => {
+                // Compartir mensaje individual
+                const shareText = `${message.sender === 'user' ? 'Usuario' : 'Bot'}: ${message.content}`;
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'Mensaje de SupportFlow',
+                    text: shareText,
+                  }).catch(() => {
+                    // Fallback a copiar al portapapeles
+                    navigator.clipboard.writeText(shareText);
+                  });
+                } else {
+                  navigator.clipboard.writeText(shareText);
+                }
+              }}
             />
           ))}
           {showSuggestions && (
@@ -78,7 +107,12 @@ export const Chat = ({ conversationId }: ChatProps) => {
           <div ref={messagesEndRef} />
         </div>
       </div>
-      <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
+      <ChatInput
+        onSendMessage={sendMessage}
+        isLoading={isLoading}
+        quotedMessage={quotedMessage}
+        onClearQuote={() => setQuotedMessage(null)}
+      />
       {conversationId && currentConversation && (
         <ExportDialog
           isOpen={isExportDialogOpen}

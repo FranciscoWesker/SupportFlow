@@ -224,10 +224,76 @@ export const useChat = (options: UseChatOptions = {}) => {
     ]);
   }, []);
 
+  const editMessage = useCallback(
+    async (messageId: string, newContent: string) => {
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === messageId || msg._id === messageId
+            ? { ...msg, content: newContent }
+            : msg
+        )
+      );
+
+      // TODO: Implementar actualización en backend si hay endpoint
+      // if (conversationId && messageId) {
+      //   await updateMessage(messageId, newContent);
+      // }
+    },
+    []
+  );
+
+  const deleteMessage = useCallback((messageId: string) => {
+    setMessages(prev => prev.filter(msg => msg.id !== messageId && msg._id !== messageId));
+    // TODO: Implementar eliminación en backend si hay endpoint
+    // if (conversationId && messageId) {
+    //   await deleteMessageFromBackend(messageId);
+    // }
+  }, []);
+
+  const regenerateMessage = useCallback(
+    async (messageId: string) => {
+      // Encontrar el mensaje a regenerar
+      const messageToRegenerate = messages.find(
+        msg => msg.id === messageId || msg._id === messageId
+      );
+      if (!messageToRegenerate || messageToRegenerate.sender !== 'bot') return;
+
+      // Encontrar el mensaje del usuario anterior
+      const messageIndex = messages.findIndex(
+        msg => msg.id === messageId || msg._id === messageId
+      );
+      if (messageIndex === -1) return;
+
+      // Buscar el último mensaje del usuario antes de este mensaje del bot
+      let userMessageIndex = -1;
+      for (let i = messageIndex - 1; i >= 0; i--) {
+        if (messages[i].sender === 'user') {
+          userMessageIndex = i;
+          break;
+        }
+      }
+
+      if (userMessageIndex === -1) return;
+
+      const userMessage = messages[userMessageIndex];
+
+      // Eliminar el mensaje del bot y todos los mensajes posteriores hasta el siguiente mensaje del usuario
+      const messagesToKeep = messages.slice(0, messageIndex);
+      setMessages(messagesToKeep);
+
+      // Enviar el mensaje del usuario nuevamente
+      await sendMessage(userMessage.content);
+    },
+    [messages, sendMessage]
+  );
+
   return {
     messages,
     isLoading,
     sendMessage,
     clearMessages,
+    editMessage,
+    deleteMessage,
+    regenerateMessage,
   };
 };
