@@ -64,7 +64,8 @@ export const MessageBubble = ({
 
     if (isMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isMenuOpen]);
 
@@ -254,7 +255,9 @@ export const MessageBubble = ({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSaveEdit}
-                disabled={!editedContent.trim() || editedContent === message.content}
+                disabled={
+                  !editedContent.trim() || editedContent === message.content
+                }
                 className={`p-1.5 rounded ${
                   isUser
                     ? 'hover:bg-primary-600 text-primary-100 disabled:opacity-50'
@@ -339,7 +342,9 @@ export const MessageBubble = ({
             <div className="flex items-center justify-between mt-2">
               <p
                 className={`text-xs ${
-                  isUser ? 'text-primary-100' : 'text-gray-500 dark:text-gray-400'
+                  isUser
+                    ? 'text-primary-100'
+                    : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 {typeof message.timestamp === 'string'
@@ -453,8 +458,12 @@ export const MessageBubble = ({
                                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                             }`}
                           >
-                            <Share2 className={`w-4 h-4 ${isSharing ? 'animate-pulse' : ''}`} />
-                            <span>{isSharing ? 'Compartiendo...' : 'Compartir'}</span>
+                            <Share2
+                              className={`w-4 h-4 ${isSharing ? 'animate-pulse' : ''}`}
+                            />
+                            <span>
+                              {isSharing ? 'Compartiendo...' : 'Compartir'}
+                            </span>
                           </button>
                         )}
                         {onDelete && (
@@ -508,7 +517,8 @@ export const MessageBubble = ({
                   ¿Eliminar mensaje?
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar este mensaje?
+                  Esta acción no se puede deshacer. ¿Estás seguro de que deseas
+                  eliminar este mensaje?
                 </p>
                 <div className="flex justify-end gap-2">
                   <motion.button

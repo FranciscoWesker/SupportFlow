@@ -88,13 +88,15 @@ export const Chat = ({ conversationId }: ChatProps) => {
                 // Compartir mensaje individual
                 const shareText = `${message.sender === 'user' ? 'Usuario' : 'Bot'}: ${message.content}`;
                 if (navigator.share) {
-                  navigator.share({
-                    title: 'Mensaje de SupportFlow',
-                    text: shareText,
-                  }).catch(() => {
-                    // Fallback a copiar al portapapeles
-                    navigator.clipboard.writeText(shareText);
-                  });
+                  navigator
+                    .share({
+                      title: 'Mensaje de SupportFlow',
+                      text: shareText,
+                    })
+                    .catch(() => {
+                      // Fallback a copiar al portapapeles
+                      navigator.clipboard.writeText(shareText);
+                    });
                 } else {
                   navigator.clipboard.writeText(shareText);
                 }

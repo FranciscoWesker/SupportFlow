@@ -243,7 +243,9 @@ export const useChat = (options: UseChatOptions = {}) => {
   );
 
   const deleteMessage = useCallback((messageId: string) => {
-    setMessages(prev => prev.filter(msg => msg.id !== messageId && msg._id !== messageId));
+    setMessages(prev =>
+      prev.filter(msg => msg.id !== messageId && msg._id !== messageId)
+    );
     // TODO: Implementar eliminación en backend si hay endpoint
     // if (conversationId && messageId) {
     //   await deleteMessageFromBackend(messageId);
