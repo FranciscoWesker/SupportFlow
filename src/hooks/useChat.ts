@@ -4,13 +4,37 @@ import { sendMessage as sendMessageToApi } from '@/services/api.service';
 import { saveMessage, getConversation } from '@/services/conversation.service';
 import { useConversations } from './useConversations';
 
+/**
+ * Genera un título para la conversación basado en el contenido del mensaje
+ */
+const generateConversationTitle = (content: string): string => {
+  // Limpiar el contenido: remover saltos de línea, espacios múltiples, etc.
+  const cleaned = content.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Limitar a 50 caracteres
+  const maxLength = 50;
+  if (cleaned.length <= maxLength) {
+    return cleaned;
+  }
+
+  // Truncar en el último espacio antes del límite para evitar cortar palabras
+  const truncated = cleaned.substring(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > 30) {
+    // Solo truncar en espacio si no es demasiado corto
+    return truncated.substring(0, lastSpace) + '...';
+  }
+  return truncated + '...';
+};
+
 interface UseChatOptions {
   conversationId?: string | null;
 }
 
 export const useChat = (options: UseChatOptions = {}) => {
   const { conversationId } = options;
-  const { loadConversations } = useConversations();
+  const { loadConversations, updateConversationTitle, currentConversation } =
+    useConversations();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -129,6 +153,12 @@ export const useChat = (options: UseChatOptions = {}) => {
         // Guardar mensaje del usuario en MongoDB si hay conversationId (solo una vez)
         if (conversationId) {
           try {
+            // Verificar si es el primer mensaje del usuario antes de guardarlo
+            const isFirstUserMessage =
+              currentConversation?.messageCount === 0 ||
+              messages.filter(msg => msg.sender === 'user' && !msg.isLoading)
+                .length === 0;
+
             const savedMessage = await saveMessage(
               conversationId,
               content,
@@ -143,6 +173,17 @@ export const useChat = (options: UseChatOptions = {}) => {
                     : msg
                 )
               );
+
+              // Si es el primer mensaje del usuario y el título es "Nueva conversación",
+              // actualizar el título basándose en el contenido del mensaje
+              if (
+                isFirstUserMessage &&
+                currentConversation?.title === 'Nueva conversación'
+              ) {
+                const newTitle = generateConversationTitle(content);
+                await updateConversationTitle(conversationId, newTitle);
+              }
+
               // Actualizar el historial de conversaciones para reflejar el nuevo mensaje
               loadConversations();
             }
@@ -209,7 +250,14 @@ export const useChat = (options: UseChatOptions = {}) => {
         sendingRef.current = false;
       }
     },
-    [messages, isLoading, conversationId, loadConversations]
+    [
+      messages,
+      isLoading,
+      conversationId,
+      loadConversations,
+      updateConversationTitle,
+      currentConversation,
+    ]
   );
 
   const clearMessages = useCallback(() => {
