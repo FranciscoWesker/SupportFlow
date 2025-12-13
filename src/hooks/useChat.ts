@@ -33,8 +33,7 @@ interface UseChatOptions {
 
 export const useChat = (options: UseChatOptions = {}) => {
   const { conversationId } = options;
-  const { loadConversations, updateConversationTitle, currentConversation } =
-    useConversations();
+  const { loadConversations, updateConversationTitle } = useConversations();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -153,11 +152,26 @@ export const useChat = (options: UseChatOptions = {}) => {
         // Guardar mensaje del usuario en MongoDB si hay conversationId (solo una vez)
         if (conversationId) {
           try {
-            // Verificar si es el primer mensaje del usuario antes de guardarlo
+            // Verificar si es el primer mensaje del usuario ANTES de guardarlo
+            // Contar solo mensajes del usuario que no sean de carga (excluyendo el que acabamos de agregar)
+            const userMessagesCount = messages.filter(
+              msg => msg.sender === 'user' && !msg.isLoading
+            ).length;
+
+            // Obtener la conversación ANTES de guardar el mensaje para verificar el estado actual
+            const conversationDataBefore =
+              await getConversation(conversationId);
             const isFirstUserMessage =
-              currentConversation?.messageCount === 0 ||
-              messages.filter(msg => msg.sender === 'user' && !msg.isLoading)
-                .length === 0;
+              userMessagesCount === 0 ||
+              (conversationDataBefore &&
+                conversationDataBefore.conversation.messageCount === 0);
+
+            // Verificar si el título es "Nueva conversación" antes de guardar
+            const needsTitleUpdate =
+              isFirstUserMessage &&
+              conversationDataBefore &&
+              conversationDataBefore.conversation.title ===
+                'Nueva conversación';
 
             const savedMessage = await saveMessage(
               conversationId,
@@ -176,12 +190,19 @@ export const useChat = (options: UseChatOptions = {}) => {
 
               // Si es el primer mensaje del usuario y el título es "Nueva conversación",
               // actualizar el título basándose en el contenido del mensaje
-              if (
-                isFirstUserMessage &&
-                currentConversation?.title === 'Nueva conversación'
-              ) {
-                const newTitle = generateConversationTitle(content);
-                await updateConversationTitle(conversationId, newTitle);
+              if (needsTitleUpdate) {
+                try {
+                  const newTitle = generateConversationTitle(content);
+                  await updateConversationTitle(conversationId, newTitle);
+                  console.log(
+                    `Título de conversación actualizado a: "${newTitle}"`
+                  );
+                } catch (titleError) {
+                  console.error(
+                    'Error al actualizar título de conversación:',
+                    titleError
+                  );
+                }
               }
 
               // Actualizar el historial de conversaciones para reflejar el nuevo mensaje
@@ -256,7 +277,6 @@ export const useChat = (options: UseChatOptions = {}) => {
       conversationId,
       loadConversations,
       updateConversationTitle,
-      currentConversation,
     ]
   );
 
