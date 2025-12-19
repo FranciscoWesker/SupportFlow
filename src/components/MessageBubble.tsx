@@ -16,8 +16,11 @@ import {
   Share2,
   X,
   Save,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { MessageFeedback } from './MessageFeedback';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 
 interface MessageBubbleProps {
   message: Message;
@@ -53,6 +56,29 @@ export const MessageBubble = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const isUser = message.sender === 'user';
+
+  // Síntesis de voz solo para mensajes del bot
+  const {
+    isSpeaking,
+    isPaused,
+    isSupported: isSpeechSynthesisSupported,
+    speak,
+    pause,
+    resume,
+    stop,
+  } = useSpeechSynthesis({
+    language: 'es-ES',
+    rate: 1,
+    pitch: 1,
+    volume: 1,
+  });
+
+  // Limpiar síntesis cuando el componente se desmonte o cambie el mensaje
+  useEffect(() => {
+    return () => {
+      stop();
+    };
+  }, [stop, message.id]);
 
   // Cerrar menú al hacer click fuera
   useEffect(() => {
@@ -358,6 +384,58 @@ export const MessageBubble = ({
                     })}
               </p>
               <div className="flex items-center gap-1">
+                {/* Botón de síntesis de voz solo para mensajes del bot */}
+                {!isUser && isSpeechSynthesisSupported && (
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      if (isSpeaking) {
+                        if (isPaused) {
+                          resume();
+                        } else {
+                          pause();
+                        }
+                      } else {
+                        // Extraer texto del markdown para leerlo
+                        const textToSpeak = message.content
+                          .replace(/#{1,6}\s+/g, '') // Remover headers
+                          .replace(/\*\*(.*?)\*\*/g, '$1') // Remover negritas
+                          .replace(/\*(.*?)\*/g, '$1') // Remover cursivas
+                          .replace(/`(.*?)`/g, '$1') // Remover código inline
+                          .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remover enlaces
+                          .replace(/>\s+/g, '') // Remover blockquotes
+                          .trim();
+                        speak(textToSpeak);
+                      }
+                    }}
+                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded ${
+                      isSpeaking
+                        ? 'bg-primary-500 text-white'
+                        : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    }`}
+                    aria-label={
+                      isSpeaking
+                        ? isPaused
+                          ? 'Reanudar lectura'
+                          : 'Pausar lectura'
+                        : 'Leer mensaje en voz alta'
+                    }
+                    title={
+                      isSpeaking
+                        ? isPaused
+                          ? 'Reanudar lectura'
+                          : 'Pausar lectura'
+                        : 'Leer mensaje en voz alta'
+                    }
+                  >
+                    {isSpeaking && !isPaused ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </motion.button>
+                )}
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}

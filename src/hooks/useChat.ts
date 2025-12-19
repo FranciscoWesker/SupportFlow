@@ -194,9 +194,6 @@ export const useChat = (options: UseChatOptions = {}) => {
                 try {
                   const newTitle = generateConversationTitle(content);
                   await updateConversationTitle(conversationId, newTitle);
-                  console.log(
-                    `Título de conversación actualizado a: "${newTitle}"`
-                  );
                 } catch (titleError) {
                   console.error(
                     'Error al actualizar título de conversación:',
