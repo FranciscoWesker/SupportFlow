@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type {
+  SpeechRecognition,
+  SpeechRecognitionEvent,
+  SpeechRecognitionErrorEvent,
+} from '@/types/speech';
 
 interface UseSpeechRecognitionOptions {
   language?: string;
@@ -13,18 +18,6 @@ interface SpeechRecognitionState {
   transcript: string;
   isSupported: boolean;
   error: string | null;
-}
-
-// Extender Window para incluir SpeechRecognition
-interface WindowWithSpeechRecognition extends Window {
-  SpeechRecognition?: {
-    prototype: SpeechRecognition;
-    new (): SpeechRecognition;
-  };
-  webkitSpeechRecognition?: {
-    prototype: SpeechRecognition;
-    new (): SpeechRecognition;
-  };
 }
 
 export const useSpeechRecognition = (
@@ -50,10 +43,8 @@ export const useSpeechRecognition = (
 
   // Verificar soporte del navegador
   useEffect(() => {
-    const windowWithSpeech = window as unknown as WindowWithSpeechRecognition;
     const SpeechRecognitionConstructor =
-      windowWithSpeech.SpeechRecognition ||
-      windowWithSpeech.webkitSpeechRecognition;
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (SpeechRecognitionConstructor) {
       isSupportedRef.current = true;
